@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -13,19 +13,48 @@ import {
 } from "../components/ui/tabs";
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [userType, setUserType] = useState("engineer");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Unable to sign in");
+      }
+
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("authUser", JSON.stringify(data.user));
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       {/* Background Pattern */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1721244654392-9c912a6eb236?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb24lMjBibHVlcHJpbnQlMjBiYWNrZ3JvdW5kfGVufDF8fHx8MTc3Mzk0NzY5NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral')`,
-          backgroundSize: "cover",
-        }}
-      />
+      <div className="auth-background-pattern absolute inset-0 opacity-5" />
 
       <div className="relative max-w-md w-full">
         {/* Logo */}
@@ -63,7 +92,13 @@ export function LoginPage() {
             </TabsList>
           </Tabs>
 
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
+
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
@@ -74,6 +109,7 @@ export function LoginPage() {
                 />
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="your.email@example.com"
                   className="pl-11 h-12 border-2 focus:border-[#1E88E5]"
@@ -91,6 +127,7 @@ export function LoginPage() {
                 />
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   className="pl-11 pr-11 h-12 border-2 focus:border-[#1E88E5]"
@@ -126,11 +163,13 @@ export function LoginPage() {
             </div>
 
             {/* Login Button */}
-            <Link to="/dashboard">
-              <Button className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-12 text-lg font-bold">
-                Sign In
-              </Button>
-            </Link>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-12 text-lg font-bold disabled:opacity-60"
+            >
+              {isSubmitting ? "Signing In..." : "Sign In"}
+            </Button>
 
             {/* Divider */}
             <div className="relative">
@@ -146,7 +185,7 @@ export function LoginPage() {
 
             {/* Social Login */}
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="h-12">
+              <Button type="button" variant="outline" className="h-12">
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -167,7 +206,7 @@ export function LoginPage() {
                 </svg>
                 Google
               </Button>
-              <Button variant="outline" className="h-12">
+              <Button type="button" variant="outline" className="h-12">
                 <svg
                   className="w-5 h-5 mr-2"
                   fill="currentColor"

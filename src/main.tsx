@@ -4,6 +4,7 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./app/routes";
 import "./styles/tailwind.css";
 import "./styles/globals.css";
+import "../default_shadcn_theme.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

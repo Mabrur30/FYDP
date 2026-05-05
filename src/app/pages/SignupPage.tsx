@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   Mail,
@@ -31,20 +31,72 @@ import {
 import { Textarea } from "../components/ui/textarea";
 
 export function SignupPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [userType, setUserType] = useState("engineer");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Engineer form state
+  const [engineerCity, setEngineerCity] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [experience, setExperience] = useState("");
+
+  // Client form state
+  const [clientCity, setClientCity] = useState("");
+  const [projectType, setProjectType] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(formData.get("confirmPassword") || "");
+
+    if (!name || !email || !password) {
+      setError("Name, email, and password are required.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, type: userType }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Unable to create account");
+      }
+
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("authUser", JSON.stringify(data.user));
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create account");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       {/* Background Pattern */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1721244654392-9c912a6eb236?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb24lMjBibHVlcHJpbnQlMjBiYWNrZ3JvdW5kfGVufDF8fHx8MTc3Mzk0NzY5NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral')`,
-          backgroundSize: "cover",
-        }}
-      />
+      <div className="auth-background-pattern absolute inset-0 opacity-5" />
 
       <div className="relative max-w-2xl mx-auto">
         {/* Logo */}
@@ -83,7 +135,13 @@ export function SignupPage() {
 
             {/* Engineer Signup Form */}
             <TabsContent value="engineer" className="mt-6">
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                {error ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Full Name */}
                   <div className="space-y-2">
@@ -95,6 +153,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="engineer-name"
+                        name="name"
                         type="text"
                         placeholder="Ahmed Khan"
                         className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -112,6 +171,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="engineer-email"
+                        name="email"
                         type="email"
                         placeholder="ahmed@example.com"
                         className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -141,7 +201,10 @@ export function SignupPage() {
                   {/* Location */}
                   <div className="space-y-2">
                     <Label htmlFor="engineer-location">Location *</Label>
-                    <Select>
+                    <Select
+                      value={engineerCity}
+                      onValueChange={setEngineerCity}
+                    >
                       <SelectTrigger className="h-11 border-2">
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
@@ -160,7 +223,10 @@ export function SignupPage() {
                   {/* Specialization */}
                   <div className="space-y-2">
                     <Label htmlFor="specialization">Specialization *</Label>
-                    <Select>
+                    <Select
+                      value={specialization}
+                      onValueChange={setSpecialization}
+                    >
                       <SelectTrigger className="h-11 border-2">
                         <SelectValue placeholder="Select specialization" />
                       </SelectTrigger>
@@ -187,7 +253,7 @@ export function SignupPage() {
                   {/* Experience */}
                   <div className="space-y-2">
                     <Label htmlFor="experience">Years of Experience *</Label>
-                    <Select>
+                    <Select value={experience} onValueChange={setExperience}>
                       <SelectTrigger className="h-11 border-2">
                         <SelectValue placeholder="Select experience" />
                       </SelectTrigger>
@@ -241,6 +307,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="engineer-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Create password"
                         className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -269,6 +336,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="engineer-confirm"
+                        name="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm password"
                         className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -319,9 +387,15 @@ export function SignupPage() {
                 </div>
 
                 {/* Submit Button */}
-                <Button className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-12 text-lg font-bold">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-12 text-lg font-bold disabled:opacity-60"
+                >
                   <CheckCircle className="mr-2" size={20} />
-                  Create Engineer Account
+                  {isSubmitting
+                    ? "Creating Account..."
+                    : "Create Engineer Account"}
                 </Button>
               </form>
 
@@ -341,7 +415,13 @@ export function SignupPage() {
 
             {/* Client Signup Form */}
             <TabsContent value="client" className="mt-6">
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                {error ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Full Name */}
                   <div className="space-y-2">
@@ -355,6 +435,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="client-name"
+                        name="name"
                         type="text"
                         placeholder="Your name or company"
                         className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -372,6 +453,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="client-email"
+                        name="email"
                         type="email"
                         placeholder="your.email@example.com"
                         className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -401,7 +483,7 @@ export function SignupPage() {
                   {/* Location */}
                   <div className="space-y-2">
                     <Label htmlFor="client-location">Location *</Label>
-                    <Select>
+                    <Select value={clientCity} onValueChange={setClientCity}>
                       <SelectTrigger className="h-11 border-2">
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
@@ -421,7 +503,7 @@ export function SignupPage() {
                   <Label htmlFor="project-type">
                     What type of project are you planning?
                   </Label>
-                  <Select>
+                  <Select value={projectType} onValueChange={setProjectType}>
                     <SelectTrigger className="h-11 border-2">
                       <SelectValue placeholder="Select project type" />
                     </SelectTrigger>
@@ -456,6 +538,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="client-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Create password"
                         className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -484,6 +567,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="client-confirm"
+                        name="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm password"
                         className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -534,9 +618,15 @@ export function SignupPage() {
                 </div>
 
                 {/* Submit Button */}
-                <Button className="w-full bg-[#FF8F00] hover:bg-[#F57C00] text-white h-12 text-lg font-bold">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#FF8F00] hover:bg-[#F57C00] text-white h-12 text-lg font-bold disabled:opacity-60"
+                >
                   <CheckCircle className="mr-2" size={20} />
-                  Create Client Account
+                  {isSubmitting
+                    ? "Creating Account..."
+                    : "Create Client Account"}
                 </Button>
               </form>
 

@@ -25,6 +25,12 @@ import { Slider } from "../components/ui/slider";
 export function ProjectPostingPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [budget, setBudget] = useState([1000000]);
+  const [projectType, setProjectType] = useState("");
+  const [location, setLocation] = useState("");
+  const [floors, setFloors] = useState("");
+  const [flexibility, setFlexibility] = useState("");
+  const [duration, setDuration] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
 
   const steps = [
     { number: 1, title: "Project Details" },
@@ -115,7 +121,7 @@ export function ProjectPostingPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl shadow-xl p-8"
+            className="bg-white rounded-2xl shadow-xl p-8 relative z-10"
           >
             {/* Step 1: Project Details */}
             {currentStep === 1 && (
@@ -135,7 +141,7 @@ export function ProjectPostingPage() {
 
                 <div className="space-y-2">
                   <Label>Project Type *</Label>
-                  <Select>
+                  <Select value={projectType} onValueChange={setProjectType}>
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select project type" />
                     </SelectTrigger>
@@ -170,7 +176,7 @@ export function ProjectPostingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Location *</Label>
-                    <Select>
+                    <Select value={location} onValueChange={setLocation}>
                       <SelectTrigger className="h-12">
                         <SelectValue placeholder="Select location" />
                       </SelectTrigger>
@@ -196,7 +202,7 @@ export function ProjectPostingPage() {
 
                 <div className="space-y-2">
                   <Label>Number of Floors</Label>
-                  <Select>
+                  <Select value={floors} onValueChange={setFloors}>
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select floors" />
                     </SelectTrigger>
@@ -242,7 +248,7 @@ export function ProjectPostingPage() {
 
                 <div className="space-y-2">
                   <Label>Budget Flexibility</Label>
-                  <Select>
+                  <Select value={flexibility} onValueChange={setFlexibility}>
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select flexibility" />
                     </SelectTrigger>
@@ -269,7 +275,7 @@ export function ProjectPostingPage() {
 
                 <div className="space-y-2">
                   <Label>Project Duration (Months)</Label>
-                  <Select>
+                  <Select value={duration} onValueChange={setDuration}>
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select duration" />
                     </SelectTrigger>
@@ -285,7 +291,7 @@ export function ProjectPostingPage() {
 
                 <div className="space-y-2">
                   <Label>Payment Terms</Label>
-                  <Select>
+                  <Select value={paymentTerms} onValueChange={setPaymentTerms}>
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select payment terms" />
                     </SelectTrigger>

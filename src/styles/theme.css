@@ -178,4 +178,23 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  /* Ensure form text and headings use the foreground color */
+  input,
+  textarea,
+  select,
+  label,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  button {
+    color: var(--foreground);
+  }
+
+  /* Slightly darker placeholder for better contrast on gray backgrounds */
+  ::placeholder {
+    color: rgba(26, 26, 26, 0.45);
+  }
 }
