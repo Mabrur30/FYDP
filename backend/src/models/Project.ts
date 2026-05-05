@@ -1,41 +1,64 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { BANGLADESH_DISTRICTS } from "../utils/bangladeshDistricts";
 
 export interface IProject extends Document {
-  ownerId?: string;
   title: string;
-  type: string;
   description: string;
-  location?: string;
+  location: string;
+  budget: number;
+  status: "open" | "in_progress" | "completed";
+  client_id: mongoose.Types.ObjectId;
+  engineer_id?: mongoose.Types.ObjectId | null;
+  type?: string;
+  ownerId?: string;
   area?: number;
   floors?: string;
-  budget?: number;
   budgetFlexibility?: string;
   startDate?: Date;
   endDate?: Date;
   paymentTerms?: string;
   additionalRequirements?: string;
-  attachments: Array<{
+  attachments?: Array<{
     filename: string;
     originalName: string;
     mimeType: string;
     size: number;
     url: string;
   }>;
-  status: "draft" | "open" | "in_progress" | "completed";
+  created_at: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const ProjectSchema = new Schema(
   {
-    ownerId: { type: String },
     title: { type: String, required: true },
-    type: { type: String, required: true },
     description: { type: String, required: true },
-    location: { type: String },
+    location: {
+      type: String,
+      required: true,
+      enum: BANGLADESH_DISTRICTS,
+    },
+    budget: { type: Number, required: true, min: 0 },
+    status: {
+      type: String,
+      enum: ["open", "in_progress", "completed"],
+      default: "open",
+    },
+    client_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Client",
+      required: true,
+    },
+    engineer_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Engineer",
+      default: null,
+    },
+    type: { type: String },
+    ownerId: { type: String },
     area: { type: Number },
     floors: { type: String },
-    budget: { type: Number },
     budgetFlexibility: { type: String },
     startDate: { type: Date },
     endDate: { type: Date },
@@ -50,11 +73,6 @@ const ProjectSchema = new Schema(
         url: { type: String, required: true },
       },
     ],
-    status: {
-      type: String,
-      enum: ["draft", "open", "in_progress", "completed"],
-      default: "open",
-    },
   },
   {
     timestamps: true,

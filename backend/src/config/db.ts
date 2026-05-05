@@ -1,10 +1,31 @@
+// import mongoose from "mongoose";
+
+// async function connectDB(mongoUri: string) {
+//   try {
+//     mongoose.connection.on("error", (error) => {
+//       console.error("MongoDB connection error:", error);
+//     });
+//     await mongoose.connect(mongoUri);
+//     console.log("Connected to MongoDB");
+//   } catch (err) {
+//     console.error("MongoDB connection error:", err);
+//     throw err;
+//   }
+// }
+
+// export default connectDB;
 import mongoose from "mongoose";
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/appdb";
-
-async function connectDB() {
+async function connectDB(mongoUri: string) {
   try {
-    await mongoose.connect(MONGO_URI);
+    mongoose.connection.on("error", (error) => {
+      console.error("MongoDB connection error:", error);
+    });
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      family: 4,
+    });
     console.log("Connected to MongoDB");
   } catch (err) {
     console.error("MongoDB connection error:", err);

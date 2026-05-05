@@ -1,8 +1,11 @@
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth";
+import engineerRoutes from "./routes/engineers";
+import clientRoutes from "./routes/clients";
 import userRoutes from "./routes/users";
 import projectRoutes from "./routes/projects";
+import reviewRoutes from "./routes/reviews";
 import uploadRoutes from "./routes/uploads";
 import conversationRoutes from "./routes/conversations";
 import path from "path";
@@ -15,8 +18,10 @@ app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/engineers", userRoutes);
+app.use("/api/engineers", engineerRoutes);
+app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/reviews", reviewRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/conversations", conversationRoutes);
 

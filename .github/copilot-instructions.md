@@ -9,35 +9,29 @@ service hiring, and resource trading.
 ## Tech Stack
 
 - Frontend: React + TypeScript + Vite + Tailwind CSS + shadcn/ui
-- Backend: Express + TypeScript + Mongoose
-- Database: MongoDB
-- Real-time: Socket.io
+- Backend: Node.js + Express.js
+- Database: MongoDB + Mongoose
 - AI Feature: Cost estimation model (XGBoost + ANN hybrid)
 
 ## Project Structure
 
 FYDP/
-├── src/ # React frontend
-├── backend/ # Express backend
-│ ├── src/
-│ │ ├── controllers/ # Business logic
-│ │ ├── models/ # Mongoose schemas
-│ │ ├── routes/ # API endpoints
-│ │ ├── utils/ # Middleware & helpers
-│ │ ├── app.ts # Express app setup
-│ │ ├── index.ts # Server entry point
-│ │ └── socket.ts # WebSocket setup
+├── src/ # React frontend (TypeScript)
+├── backend/ # Express backend (Node.js)
+│ ├── models/ # Mongoose models
+│ ├── routes/ # API route handlers
+│ ├── controllers/ # Business logic
+│ └── server.js # Entry point
 
 ## Coding Guidelines
 
-- Follow Express REST conventions and DRY principle
-- Use TypeScript strictly for both frontend and backend — no `any` types
-- Use middleware for auth, validation, and error handling
-- Use Mongoose schemas for database models
-- Use React functional components with hooks only
-- Use Tailwind + shadcn/ui for all UI components
-- Implement proper error handling and validation
-- API base URL: http://localhost:4000/api/
+- Backend: Use async/await, proper error handling with try/catch
+- Use Mongoose for all MongoDB operations
+- RESTful API conventions — proper HTTP methods and status codes
+- Frontend: React functional components + hooks only
+- Use Tailwind + shadcn/ui for all UI — no inline styles
+- TypeScript strictly on frontend — no `any` types
+- API base URL: http://localhost:5000/api/
 
 ## Key Features to Build
 
@@ -51,4 +45,4 @@ FYDP/
 
 - All locations refer to Bangladesh districts
 - Currency is BDT (Bangladeshi Taka)
-- Engineers must have BUET/IEB credentials for verification
+- Engineers verified via BUET/IEB credentials
