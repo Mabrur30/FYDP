@@ -8,8 +8,11 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
+import { isAuthenticated } from "../utils/auth";
 
 export function Footer() {
+  const authenticated = isAuthenticated();
+
   return (
     <footer className="bg-[#1A1A1A] text-white mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -29,24 +32,32 @@ export function Footer() {
             <div className="flex space-x-4">
               <a
                 href="#"
+                aria-label="Facebook"
+                title="Facebook"
                 className="text-gray-400 hover:text-[#1E88E5] transition-colors"
               >
                 <Facebook size={20} />
               </a>
               <a
                 href="#"
+                aria-label="Twitter"
+                title="Twitter"
                 className="text-gray-400 hover:text-[#1E88E5] transition-colors"
               >
                 <Twitter size={20} />
               </a>
               <a
                 href="#"
+                aria-label="LinkedIn"
+                title="LinkedIn"
                 className="text-gray-400 hover:text-[#1E88E5] transition-colors"
               >
                 <Linkedin size={20} />
               </a>
               <a
                 href="#"
+                aria-label="Instagram"
+                title="Instagram"
                 className="text-gray-400 hover:text-[#1E88E5] transition-colors"
               >
                 <Instagram size={20} />
@@ -59,36 +70,72 @@ export function Footer() {
             <h3 className="font-bold text-lg mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link
-                  to="/engineers"
-                  className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
-                >
-                  Find Engineers
-                </Link>
+                {authenticated ? (
+                  <Link
+                    to="/engineers"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Find Engineers
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Home
+                  </Link>
+                )}
               </li>
               <li>
-                <Link
-                  to="/cost-estimator"
-                  className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
-                >
-                  Cost Calculator
-                </Link>
+                {authenticated ? (
+                  <Link
+                    to="/cost-estimator"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Cost Calculator
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Cost Calculator
+                  </Link>
+                )}
               </li>
               <li>
-                <Link
-                  to="/post-project"
-                  className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
-                >
-                  Post a Project
-                </Link>
+                {authenticated ? (
+                  <Link
+                    to="/post-project"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Post a Project
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Post a Project
+                  </Link>
+                )}
               </li>
               <li>
-                <Link
-                  to="/dashboard"
-                  className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
-                >
-                  Dashboard
-                </Link>
+                {authenticated ? (
+                  <Link
+                    to="/dashboard"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="text-gray-400 hover:text-[#1E88E5] transition-colors text-sm"
+                  >
+                    Dashboard
+                  </Link>
+                )}
               </li>
             </ul>
           </div>

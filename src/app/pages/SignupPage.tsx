@@ -47,6 +47,14 @@ export function SignupPage() {
   const [clientCity, setClientCity] = useState("");
   const [projectType, setProjectType] = useState("");
 
+  function parseExperienceYears(value: string) {
+    if (value === "0-2") return 1;
+    if (value === "3-5") return 4;
+    if (value === "6-10") return 8;
+    if (value === "10+") return 10;
+    return 0;
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -55,6 +63,7 @@ export function SignupPage() {
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
+    const phone = String(formData.get("phone") || "").trim();
     const password = String(formData.get("password") || "");
     const confirmPassword = String(formData.get("confirmPassword") || "");
 
@@ -70,14 +79,44 @@ export function SignupPage() {
       return;
     }
 
+    if (!phone) {
+      setError("Phone number is required.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      const response = await fetch("/api/auth/signup", {
+      const isEngineer = userType === "engineer";
+      const payload = isEngineer
+        ? {
+            name,
+            email,
+            phone,
+            password,
+            specialization,
+            location: engineerCity,
+            experience_years: parseExperienceYears(experience),
+          }
+        : {
+            name,
+            email,
+            phone,
+            password,
+            location: clientCity,
+          };
+
+      const endpoint = isEngineer
+        ? "/api/auth/engineer/register"
+        : "/api/auth/client/register";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, type: userType }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      const data = responseText ? JSON.parse(responseText) : null;
 
       if (!response.ok) {
         throw new Error(data?.message || "Unable to create account");
@@ -85,6 +124,7 @@ export function SignupPage() {
 
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("authUser", JSON.stringify(data.user));
+      localStorage.setItem("authRole", userType);
       navigate("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create account");
@@ -191,6 +231,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="engineer-phone"
+                        name="phone"
                         type="tel"
                         placeholder="+880 1700-000000"
                         className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -209,11 +250,11 @@ export function SignupPage() {
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="dhaka">Dhaka</SelectItem>
-                        <SelectItem value="chittagong">Chittagong</SelectItem>
-                        <SelectItem value="sylhet">Sylhet</SelectItem>
-                        <SelectItem value="rajshahi">Rajshahi</SelectItem>
-                        <SelectItem value="khulna">Khulna</SelectItem>
+                        <SelectItem value="Dhaka">Dhaka</SelectItem>
+                        <SelectItem value="Chattogram">Chattogram</SelectItem>
+                        <SelectItem value="Sylhet">Sylhet</SelectItem>
+                        <SelectItem value="Rajshahi">Rajshahi</SelectItem>
+                        <SelectItem value="Khulna">Khulna</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -473,6 +514,7 @@ export function SignupPage() {
                       />
                       <Input
                         id="client-phone"
+                        name="phone"
                         type="tel"
                         placeholder="+880 1700-000000"
                         className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
@@ -488,11 +530,11 @@ export function SignupPage() {
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="dhaka">Dhaka</SelectItem>
-                        <SelectItem value="chittagong">Chittagong</SelectItem>
-                        <SelectItem value="sylhet">Sylhet</SelectItem>
-                        <SelectItem value="rajshahi">Rajshahi</SelectItem>
-                        <SelectItem value="khulna">Khulna</SelectItem>
+                        <SelectItem value="Dhaka">Dhaka</SelectItem>
+                        <SelectItem value="Chattogram">Chattogram</SelectItem>
+                        <SelectItem value="Sylhet">Sylhet</SelectItem>
+                        <SelectItem value="Rajshahi">Rajshahi</SelectItem>
+                        <SelectItem value="Khulna">Khulna</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

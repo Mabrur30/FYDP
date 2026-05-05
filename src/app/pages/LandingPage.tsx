@@ -20,22 +20,10 @@ export function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1667294051432-6c6b5e273080?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb24lMjBzaXRlJTIwRGhha2ElMjBza3lsaW5lfGVufDF8fHx8MTc3Mzk0NzY5M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral')`,
-          }}
-        >
+        <div className="landing-hero-background absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
           {/* Blueprint Pattern Overlay */}
-          <div
-            className="absolute inset-0 -z-10 opacity-10"
-            style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1721244654392-9c912a6eb236?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb24lMjBibHVlcHJpbnQlMjBiYWNrZ3JvdW5kfGVufDF8fHx8MTc3Mzk0NzY5NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral')`,
-              backgroundSize: "cover",
-              mixBlendMode: "overlay",
-            }}
-          />
+          <div className="landing-hero-blueprint absolute inset-0 -z-10 opacity-10" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -65,13 +53,13 @@ export function LandingPage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link to="/post-project">
+            <Link to="/login">
               <Button className="bg-[#FF8F00] hover:bg-[#F57C00] text-white px-10 py-7 text-lg shadow-2xl hover:shadow-3xl hover:scale-105 transition-all">
                 POST PROJECT
                 <ArrowRight className="ml-2" size={20} />
               </Button>
             </Link>
-            <Link to="/engineers">
+            <Link to="/login">
               <Button
                 variant="outline"
                 className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-[#1A1A1A] px-10 py-7 text-lg transition-all"
@@ -127,7 +115,7 @@ export function LandingPage() {
                 Get instant, accurate cost estimates for your construction
                 project powered by AI technology. Save time and plan better.
               </p>
-              <Link to="/cost-estimator">
+              <Link to="/login">
                 <Button
                   variant="link"
                   className="text-[#1E88E5] p-0 hover:underline"
@@ -156,7 +144,7 @@ export function LandingPage() {
                 Browse through 500+ verified civil engineers with proven track
                 records. All credentials thoroughly checked.
               </p>
-              <Link to="/engineers">
+              <Link to="/login">
                 <Button
                   variant="link"
                   className="text-[#1E88E5] p-0 hover:underline"
@@ -185,7 +173,7 @@ export function LandingPage() {
                 Access pre-approved building designs and blueprints. Speed up
                 your construction planning and approvals.
               </p>
-              <Link to="/engineers">
+              <Link to="/login">
                 <Button
                   variant="link"
                   className="text-[#1E88E5] p-0 hover:underline"
@@ -288,7 +276,7 @@ export function LandingPage() {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            <Link to="/post-project">
+            <Link to="/login">
               <Button className="bg-[#FF8F00] hover:bg-[#F57C00] text-white px-12 py-7 text-lg shadow-2xl hover:scale-105 transition-all">
                 GET STARTED NOW
               </Button>

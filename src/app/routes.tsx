@@ -4,11 +4,14 @@ import { CostEstimatorPage } from "./pages/CostEstimtorPage";
 import { EngineerDirectoryPage } from "./pages/EngineerDirectoryPage";
 import { ProjectPostingPage } from "./pages/ProjextPostingPage";
 import { EngineerDashboardPage } from "./pages/EngineerDashboardPage";
+import { ClientDashboardPage } from "./pages/ClientDashboardPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { EngineerProfilePage } from "./pages/EngineerProfilePage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { NetworkPage } from "./pages/NetworkPage";
 import { ChatPage } from "./pages/ChatPage";
+import { PublicOnly, RequireAuth } from "./components/RouteGuards";
 
 export const router = createBrowserRouter([
   {
@@ -16,40 +19,58 @@ export const router = createBrowserRouter([
     element: <LandingPage />,
   },
   {
-    path: "/cost-estimator",
-    element: <CostEstimatorPage />,
+    element: <PublicOnly />,
+    children: [
+      {
+        path: "/login",
+        element: <LoginPage />,
+      },
+      {
+        path: "/signup",
+        element: <SignupPage />,
+      },
+    ],
   },
   {
-    path: "/engineers",
-    element: <EngineerDirectoryPage />,
-  },
-  {
-    path: "/post-project",
-    element: <ProjectPostingPage />,
-  },
-  {
-    path: "/dashboard",
-    element: <EngineerDashboardPage />,
-  },
-  {
-    path: "/engineer/:id",
-    element: <EngineerProfilePage />,
-  },
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
-  {
-    path: "/signup",
-    element: <SignupPage />,
-  },
-  {
-    path: "/network",
-    element: <NetworkPage />,
-  },
-  {
-    path: "/messages",
-    element: <ChatPage />,
+    element: <RequireAuth />,
+    children: [
+      {
+        path: "/cost-estimator",
+        element: <CostEstimatorPage />,
+      },
+      {
+        path: "/engineers",
+        element: <EngineerDirectoryPage />,
+      },
+      {
+        path: "/post-project",
+        element: <ProjectPostingPage />,
+      },
+      {
+        path: "/dashboard",
+        element: <DashboardPage />,
+      },
+      {
+        path: "/dashboard/engineer",
+        element: <EngineerDashboardPage />,
+      },
+      {
+        path: "/dashboard/client",
+        element: <ClientDashboardPage />,
+      },
+      {
+        path: "/engineer/:id",
+        element: <EngineerProfilePage />,
+      },
+      {
+        path: "/network",
+        element: <NetworkPage />,
+      },
+      {
+        path: "/messages",
+        element: <ChatPage />,
+      },
+    ],
   },
   {
     path: "*",

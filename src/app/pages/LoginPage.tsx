@@ -32,10 +32,11 @@ export function LoginPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role: userType }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      const data = responseText ? JSON.parse(responseText) : null;
 
       if (!response.ok) {
         throw new Error(data?.message || "Unable to sign in");
@@ -43,6 +44,7 @@ export function LoginPage() {
 
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("authUser", JSON.stringify(data.user));
+      localStorage.setItem("authRole", userType);
       navigate("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in");
@@ -74,6 +76,10 @@ export function LoginPage() {
           transition={{ duration: 0.6 }}
           className="bg-white rounded-2xl shadow-2xl p-8"
         >
+          <p className="mb-3 text-sm font-medium text-gray-600">
+            Choose account type
+          </p>
+
           {/* User Type Tabs */}
           <Tabs value={userType} onValueChange={setUserType} className="mb-6">
             <TabsList className="grid w-full grid-cols-2">
@@ -168,7 +174,9 @@ export function LoginPage() {
               disabled={isSubmitting}
               className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-12 text-lg font-bold disabled:opacity-60"
             >
-              {isSubmitting ? "Signing In..." : "Sign In"}
+              {isSubmitting
+                ? "Signing In..."
+                : `Sign In as ${userType === "client" ? "Client" : "Engineer"}`}
             </Button>
 
             {/* Divider */}
