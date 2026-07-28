@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+import { getAuthToken } from "../utils/auth";
 import {
   Search,
   Send,
@@ -33,178 +35,35 @@ interface Conversation {
   messages: Message[];
 }
 
+const initialConversations: Conversation[] = [];
+
+function getConversationFromSearch(search: string) {
+  const params = new URLSearchParams(search);
+  const rawConversation = params.get("conversation");
+  const rawUserId = params.get("userId");
+  const targetValue = rawConversation || rawUserId;
+
+  if (!targetValue) return null;
+
+  return initialConversations.find(
+    (conversation) =>
+      String(conversation.id) === targetValue ||
+      String(conversation.userId) === targetValue,
+  );
+}
+
 export function ChatPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: 1,
-      userId: 1,
-      name: "Mahmud Hasan",
-      title: "Senior Structural Engineer",
-      image:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop",
-      lastMessage:
-        "I can help with the structural calculations for your project",
-      lastMessageTime: "2 min ago",
-      unreadCount: 2,
-      online: true,
-      messages: [
-        {
-          id: 1,
-          senderId: 0,
-          text: "Hi Mahmud, I saw your profile and I need help with structural calculations for a 10-story building project in Gulshan.",
-          timestamp: "10:30 AM",
-          read: true,
-        },
-        {
-          id: 2,
-          senderId: 1,
-          text: "Hello! I'd be happy to help. Can you share more details about the project?",
-          timestamp: "10:32 AM",
-          read: true,
-        },
-        {
-          id: 3,
-          senderId: 0,
-          text: "Yes, it's a residential building with a basement parking area. We need complete structural design and analysis.",
-          timestamp: "10:35 AM",
-          read: true,
-        },
-        {
-          id: 4,
-          senderId: 1,
-          text: "I can help with the structural calculations for your project",
-          timestamp: "10:38 AM",
-          read: false,
-        },
-        {
-          id: 5,
-          senderId: 1,
-          text: "I have experience with similar projects in Dhaka. When do you need this completed?",
-          timestamp: "10:38 AM",
-          read: false,
-        },
-      ],
-    },
-    {
-      id: 2,
-      userId: 2,
-      name: "Sabrina Akter",
-      title: "Environmental Engineer",
-      image:
-        "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop",
-      lastMessage: "The environmental impact assessment report is ready",
-      lastMessageTime: "1 hour ago",
-      unreadCount: 0,
-      online: true,
-      messages: [
-        {
-          id: 1,
-          senderId: 0,
-          text: "Hi Sabrina, can you prepare the environmental impact assessment for our construction project?",
-          timestamp: "Yesterday",
-          read: true,
-        },
-        {
-          id: 2,
-          senderId: 2,
-          text: "Sure! I'll need the project details and site location.",
-          timestamp: "Yesterday",
-          read: true,
-        },
-        {
-          id: 3,
-          senderId: 2,
-          text: "The environmental impact assessment report is ready",
-          timestamp: "1 hour ago",
-          read: true,
-        },
-      ],
-    },
-    {
-      id: 3,
-      userId: 3,
-      name: "Ashraf Ali",
-      title: "Construction Manager",
-      image:
-        "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&h=200&fit=crop",
-      lastMessage: "Thanks for the project opportunity!",
-      lastMessageTime: "3 hours ago",
-      unreadCount: 0,
-      online: false,
-      messages: [
-        {
-          id: 1,
-          senderId: 0,
-          text: "We have a commercial project starting next month. Are you available?",
-          timestamp: "3 hours ago",
-          read: true,
-        },
-        {
-          id: 2,
-          senderId: 3,
-          text: "Thanks for the project opportunity!",
-          timestamp: "3 hours ago",
-          read: true,
-        },
-      ],
-    },
-    {
-      id: 4,
-      userId: 4,
-      name: "Razia Sultana",
-      title: "Bridge Design Engineer",
-      image:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop",
-      lastMessage: "I've sent the bridge design blueprints via email",
-      lastMessageTime: "1 day ago",
-      unreadCount: 0,
-      online: false,
-      messages: [
-        {
-          id: 1,
-          senderId: 0,
-          text: "Can you review the bridge design for our highway project?",
-          timestamp: "2 days ago",
-          read: true,
-        },
-        {
-          id: 2,
-          senderId: 4,
-          text: "I've sent the bridge design blueprints via email",
-          timestamp: "1 day ago",
-          read: true,
-        },
-      ],
-    },
-    {
-      id: 5,
-      userId: 5,
-      name: "Kamal Hassan",
-      title: "Structural Engineer",
-      image:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
-      lastMessage: "Looking forward to collaborating with you",
-      lastMessageTime: "2 days ago",
-      unreadCount: 0,
-      online: false,
-      messages: [
-        {
-          id: 1,
-          senderId: 5,
-          text: "Looking forward to collaborating with you",
-          timestamp: "2 days ago",
-          read: true,
-        },
-      ],
-    },
-  ]);
+  const location = useLocation();
+  const token = getAuthToken();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const [selectedConversation, setSelectedConversation] =
-    useState<Conversation | null>(conversations[0]);
+    useState<Conversation | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -214,74 +73,107 @@ export function ChatPage() {
     scrollToBottom();
   }, [selectedConversation?.messages]);
 
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/conversations`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error("Unable to load conversations");
+        const data = await res.json();
+        const convs = (data || []).map((c: any) => ({
+          id: String(c.id),
+          userId: String(c.userId),
+          name: c.name,
+          title: c.title,
+          image: c.image,
+          lastMessage: c.lastMessage,
+          lastMessageTime: c.lastMessageTime,
+          unreadCount: c.unreadCount || 0,
+          online: c.online || false,
+          messages: [],
+        }));
+        setConversations(convs);
+
+        const conversation = getConversationFromSearch(location.search);
+        const target = conversation || convs[0] || null;
+        if (target) {
+          setSelectedConversation(target);
+          // load messages
+          const msgsRes = await fetch(
+            `/api/conversations/${target.id}/messages`,
+            {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            },
+          );
+          if (msgsRes.ok) {
+            const msgs = await msgsRes.json();
+            setSelectedConversation((prev) =>
+              prev ? { ...prev, messages: msgs } : prev,
+            );
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, [location.search]);
+
   const handleSendMessage = () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
-    const newMessage: Message = {
-      id: selectedConversation.messages.length + 1,
-      senderId: 0,
-      text: messageInput,
-      timestamp: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      read: false,
-    };
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/conversations/${selectedConversation.id}/messages`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ text: messageInput }),
+          },
+        );
 
-    const updatedConversations = conversations.map((conv) => {
-      if (conv.id === selectedConversation.id) {
-        return {
-          ...conv,
-          messages: [...conv.messages, newMessage],
-          lastMessage: messageInput,
-          lastMessageTime: "Just now",
-        };
+        if (!res.ok) throw new Error("Unable to send message");
+        const saved = await res.json();
+
+        // refresh messages
+        const msgsRes = await fetch(
+          `/api/conversations/${selectedConversation.id}/messages`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          },
+        );
+        if (msgsRes.ok) {
+          const msgs = await msgsRes.json();
+          setSelectedConversation((prev) =>
+            prev ? { ...prev, messages: msgs } : prev,
+          );
+          setConversations((prev) =>
+            prev.map((c) =>
+              String(c.id) === String(selectedConversation.id)
+                ? {
+                    ...c,
+                    lastMessage: messageInput,
+                    lastMessageTime: "Just now",
+                  }
+                : c,
+            ),
+          );
+        }
+
+        setMessageInput("");
+      } catch (err) {
+        console.error(err);
       }
-      return conv;
-    });
-
-    setConversations(updatedConversations);
-    setSelectedConversation({
-      ...selectedConversation,
-      messages: [...selectedConversation.messages, newMessage],
-    });
-    setMessageInput("");
-
-    // Simulate typing indicator and response
-    setTimeout(() => {
-      setIsTyping(true);
-      setTimeout(() => {
-        const response: Message = {
-          id: selectedConversation.messages.length + 2,
-          senderId: selectedConversation.userId,
-          text: "Thanks for your message! I'll get back to you shortly.",
-          timestamp: new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          }),
-          read: false,
-        };
-
-        const updatedConvsWithResponse = updatedConversations.map((conv) => {
-          if (conv.id === selectedConversation.id) {
-            return {
-              ...conv,
-              messages: [...conv.messages, response],
-              lastMessage: response.text,
-              lastMessageTime: "Just now",
-            };
-          }
-          return conv;
-        });
-
-        setConversations(updatedConvsWithResponse);
-        setSelectedConversation({
-          ...selectedConversation,
-          messages: [...selectedConversation.messages, newMessage, response],
-        });
-        setIsTyping(false);
-      }, 2000);
-    }, 1000);
+    })();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -397,7 +289,7 @@ export function ChatPage() {
 
             {/* Chat Area */}
             {selectedConversation ? (
-              <div className="flex-1 flex flex-col hidden md:flex">
+              <div className="flex-1 flex flex-col">
                 {/* Chat Header */}
                 <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -489,14 +381,8 @@ export function ChatPage() {
                       <div className="bg-white text-[#1A1A1A] rounded-2xl rounded-tl-sm border border-gray-200 px-4 py-3 shadow-sm">
                         <div className="flex gap-1">
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div
-                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.4s" }}
-                          ></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:200ms]"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:400ms]"></div>
                         </div>
                       </div>
                     </div>

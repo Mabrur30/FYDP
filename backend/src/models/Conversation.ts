@@ -1,6 +1,8 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IConversation extends Document {
+  engineerId?: string;
+  clientId?: string;
   participants: string[];
   name: string;
   title: string;
@@ -15,6 +17,8 @@ export interface IConversation extends Document {
 
 const ConversationSchema = new Schema(
   {
+    engineerId: { type: String, index: true },
+    clientId: { type: String, index: true },
     participants: [{ type: String, required: true }],
     name: { type: String, required: true },
     title: { type: String, required: true },

@@ -7,6 +7,11 @@ export interface IEngineer extends Document {
   phone: string;
   password: string;
   specialization: string;
+  title?: string;
+  bio?: string;
+  specialties?: string[];
+  imageUrl?: string;
+  hourlyRate?: string;
   location: (typeof BANGLADESH_DISTRICTS)[number];
   experience_years: number;
   is_verified: boolean;
@@ -29,6 +34,11 @@ const EngineerSchema = new Schema(
     phone: { type: String, required: true, trim: true },
     password: { type: String, required: true },
     specialization: { type: String, required: true, trim: true },
+    title: { type: String, trim: true },
+    bio: { type: String, trim: true },
+    specialties: [{ type: String, trim: true }],
+    imageUrl: { type: String, trim: true },
+    hourlyRate: { type: String, trim: true },
     location: { type: String, required: true, enum: BANGLADESH_DISTRICTS },
     experience_years: { type: Number, required: true, min: 0, default: 0 },
     is_verified: { type: Boolean, default: false },

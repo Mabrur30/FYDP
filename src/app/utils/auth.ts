@@ -8,6 +8,19 @@ export function getAuthRole() {
   return window.localStorage.getItem("authRole");
 }
 
+export function getAuthUser() {
+  if (typeof window === "undefined") return null;
+
+  const rawUser = window.localStorage.getItem("authUser");
+  if (!rawUser) return null;
+
+  try {
+    return JSON.parse(rawUser) as { _id?: string; id?: string };
+  } catch {
+    return null;
+  }
+}
+
 export function isAuthenticated() {
   return Boolean(getAuthToken());
 }

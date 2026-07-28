@@ -10,4 +10,5 @@ npm install
 npm run dev
 ```
 
-Environment: copy `.env.example` to `.env` and update `MONGO_URI` and `JWT_SECRET`.
+Environment: copy `.env.example` to `.env` and set `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL`.
+The backend will not start without `MONGO_URI`.

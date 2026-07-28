@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
+  Loader2,
   Mail,
   Lock,
   Eye,
@@ -15,6 +16,7 @@ import {
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Tabs,
   TabsContent,
@@ -30,6 +32,25 @@ import {
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 
+function getPasswordStrength(password: string) {
+  const score = [
+    password.length >= 8,
+    /[A-Z]/.test(password),
+    /\d/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ].filter(Boolean).length;
+
+  if (!password) {
+    return { label: "Password strength", width: "0%", tone: "bg-slate-200" };
+  }
+
+  if (score <= 1) return { label: "Weak", width: "25%", tone: "bg-rose-500" };
+  if (score === 2) return { label: "Fair", width: "50%", tone: "bg-amber-500" };
+  if (score === 3)
+    return { label: "Strong", width: "75%", tone: "bg-blue-500" };
+  return { label: "Very strong", width: "100%", tone: "bg-emerald-500" };
+}
+
 export function SignupPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +58,12 @@ export function SignupPage() {
   const [userType, setUserType] = useState("engineer");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [bio, setBio] = useState("");
+  const passwordStrength = getPasswordStrength(password);
+  const requiredStarClass =
+    "after:content-['*'] after:ml-1 after:text-rose-500";
 
   // Engineer form state
   const [engineerCity, setEngineerCity] = useState("");
@@ -134,61 +161,51 @@ export function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      {/* Background Pattern */}
-      <div className="auth-background-pattern absolute inset-0 opacity-5" />
+    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f8fafc_0%,#eef4ff_100%)] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 opacity-[0.35] [background-image:radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.10),_transparent_30%),linear-gradient(rgba(148,163,184,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.06)_1px,transparent_1px)] [background-size:auto,auto,36px_36px,36px_36px]" />
 
-      <div className="relative max-w-2xl mx-auto">
-        {/* Logo */}
-        <div className="text-center mb-8">
+      <div className="relative mx-auto w-full max-w-2xl">
+        <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center space-x-2">
-            <div className="w-12 h-12 bg-[#1E88E5] rounded-lg flex items-center justify-center">
-              <span className="text-white text-2xl font-bold">CH</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 shadow-lg shadow-blue-500/20">
+              <span className="text-2xl font-bold text-white">CH</span>
             </div>
-            <span className="text-3xl font-bold text-[#1A1A1A]">CivilHub</span>
+            <span className="text-3xl font-bold text-slate-900">CivilHub</span>
           </Link>
-          <p className="mt-4 text-gray-600">Create your account</p>
+          <p className="mt-4 text-slate-500">Create your account</p>
         </div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white rounded-2xl shadow-2xl p-8"
+          className="rounded-2xl border border-slate-200/80 bg-white/95 p-8 shadow-xl shadow-slate-200/50 backdrop-blur-xl"
         >
-          {/* User Type Tabs */}
           <Tabs value={userType} onValueChange={setUserType} className="mb-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger
-                value="engineer"
-                className="data-[state=active]:bg-[#1E88E5] data-[state=active]:text-white"
-              >
-                I'm an Engineer
-              </TabsTrigger>
-              <TabsTrigger
-                value="client"
-                className="data-[state=active]:bg-[#1E88E5] data-[state=active]:text-white"
-              >
-                I'm a Client
-              </TabsTrigger>
+              <TabsTrigger value="engineer">I'm an Engineer</TabsTrigger>
+              <TabsTrigger value="client">I'm a Client</TabsTrigger>
             </TabsList>
 
-            {/* Engineer Signup Form */}
             <TabsContent value="engineer" className="mt-6">
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-5" onSubmit={handleSubmit}>
                 {error ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700">
                     {error}
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Full Name */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="engineer-name">Full Name *</Label>
+                    <Label
+                      htmlFor="engineer-name"
+                      className={requiredStarClass}
+                    >
+                      Full Name
+                    </Label>
                     <div className="relative">
                       <User
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -196,17 +213,21 @@ export function SignupPage() {
                         name="name"
                         type="text"
                         placeholder="Ahmed Khan"
-                        className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
+                        className="pl-10"
                       />
                     </div>
                   </div>
 
-                  {/* Email */}
                   <div className="space-y-2">
-                    <Label htmlFor="engineer-email">Email Address *</Label>
+                    <Label
+                      htmlFor="engineer-email"
+                      className={requiredStarClass}
+                    >
+                      Email Address
+                    </Label>
                     <div className="relative">
                       <Mail
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -214,19 +235,23 @@ export function SignupPage() {
                         name="email"
                         type="email"
                         placeholder="ahmed@example.com"
-                        className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
+                        className="pl-10"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Phone */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="engineer-phone">Phone Number *</Label>
+                    <Label
+                      htmlFor="engineer-phone"
+                      className={requiredStarClass}
+                    >
+                      Phone Number
+                    </Label>
                     <div className="relative">
                       <Phone
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -234,19 +259,23 @@ export function SignupPage() {
                         name="phone"
                         type="tel"
                         placeholder="+880 1700-000000"
-                        className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
+                        className="pl-10"
                       />
                     </div>
                   </div>
 
-                  {/* Location */}
                   <div className="space-y-2">
-                    <Label htmlFor="engineer-location">Location *</Label>
+                    <Label
+                      htmlFor="engineer-location"
+                      className={requiredStarClass}
+                    >
+                      Location
+                    </Label>
                     <Select
                       value={engineerCity}
                       onValueChange={setEngineerCity}
                     >
-                      <SelectTrigger className="h-11 border-2">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
                       <SelectContent>
@@ -260,15 +289,19 @@ export function SignupPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Specialization */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="specialization">Specialization *</Label>
+                    <Label
+                      htmlFor="specialization"
+                      className={requiredStarClass}
+                    >
+                      Specialization
+                    </Label>
                     <Select
                       value={specialization}
                       onValueChange={setSpecialization}
                     >
-                      <SelectTrigger className="h-11 border-2">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select specialization" />
                       </SelectTrigger>
                       <SelectContent>
@@ -291,11 +324,12 @@ export function SignupPage() {
                     </Select>
                   </div>
 
-                  {/* Experience */}
                   <div className="space-y-2">
-                    <Label htmlFor="experience">Years of Experience *</Label>
+                    <Label htmlFor="experience" className={requiredStarClass}>
+                      Years of Experience
+                    </Label>
                     <Select value={experience} onValueChange={setExperience}>
-                      <SelectTrigger className="h-11 border-2">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select experience" />
                       </SelectTrigger>
                       <SelectContent>
@@ -308,42 +342,52 @@ export function SignupPage() {
                   </div>
                 </div>
 
-                {/* Professional Summary */}
                 <div className="space-y-2">
-                  <Label htmlFor="bio">Professional Summary</Label>
+                  <div className="flex items-center justify-between gap-4">
+                    <Label htmlFor="bio">Professional Summary</Label>
+                    <span className="text-xs font-medium text-slate-500">
+                      {bio.length}/280
+                    </span>
+                  </div>
                   <Textarea
                     id="bio"
+                    maxLength={280}
+                    value={bio}
+                    onChange={(event) => setBio(event.target.value)}
                     placeholder="Brief description of your expertise and experience..."
-                    className="min-h-24 border-2 focus:border-[#1E88E5]"
+                    className="min-h-28"
                   />
                 </div>
 
-                {/* License Number */}
                 <div className="space-y-2">
                   <Label htmlFor="license">
                     Professional License Number (IEB)
                   </Label>
                   <div className="relative">
                     <Briefcase
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                       size={18}
                     />
                     <Input
                       id="license"
                       type="text"
                       placeholder="IEB License Number (Optional)"
-                      className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
+                      className="pl-10"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Password */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="engineer-password">Password *</Label>
+                    <Label
+                      htmlFor="engineer-password"
+                      className={requiredStarClass}
+                    >
+                      Password
+                    </Label>
                     <div className="relative">
                       <Lock
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -351,12 +395,14 @@ export function SignupPage() {
                         name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Create password"
-                        className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        className="pl-10 pr-10"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-blue-600"
                       >
                         {showPassword ? (
                           <EyeOff size={18} />
@@ -365,14 +411,29 @@ export function SignupPage() {
                         )}
                       </button>
                     </div>
+                    <div className="space-y-1">
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${passwordStrength.tone}`}
+                          style={{ width: passwordStrength.width }}
+                        />
+                      </div>
+                      <p className="text-xs font-medium text-slate-500">
+                        {passwordStrength.label}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="engineer-confirm">Confirm Password *</Label>
+                    <Label
+                      htmlFor="engineer-confirm"
+                      className={requiredStarClass}
+                    >
+                      Confirm Password
+                    </Label>
                     <div className="relative">
                       <Lock
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -380,14 +441,18 @@ export function SignupPage() {
                         name="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm password"
-                        className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
+                        value={confirmPassword}
+                        onChange={(event) =>
+                          setConfirmPassword(event.target.value)
+                        }
+                        className="pl-10 pr-10"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-blue-600"
                       >
                         {showConfirmPassword ? (
                           <EyeOff size={18} />
@@ -399,79 +464,89 @@ export function SignupPage() {
                   </div>
                 </div>
 
-                {/* Terms */}
-                <div className="flex items-start space-x-2">
-                  <input
-                    type="checkbox"
-                    id="engineer-terms"
-                    className="mt-1 w-4 h-4 text-[#1E88E5] rounded"
-                  />
+                <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <Checkbox id="engineer-terms" className="mt-0.5" />
                   <label
                     htmlFor="engineer-terms"
-                    className="text-sm text-gray-700"
+                    className="text-sm leading-6 text-slate-600"
                   >
                     I agree to the{" "}
                     <Link
                       to="/terms"
-                      className="text-[#1E88E5] hover:underline"
+                      className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
                     >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
                     <Link
                       to="/privacy"
-                      className="text-[#1E88E5] hover:underline"
+                      className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
                     >
                       Privacy Policy
                     </Link>
                   </label>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white h-12 text-lg font-bold disabled:opacity-60"
+                  className="w-full"
                 >
-                  <CheckCircle className="mr-2" size={20} />
-                  {isSubmitting
-                    ? "Creating Account..."
-                    : "Create Engineer Account"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="size-4" />
+                      Create Engineer Account
+                    </>
+                  )}
                 </Button>
               </form>
 
-              {/* Benefits */}
-              <div className="mt-6 p-4 bg-[#1E88E5]/10 rounded-lg">
-                <h3 className="font-bold text-[#1A1A1A] mb-2">
-                  Engineer Benefits:
+              <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+                <h3 className="mb-3 font-semibold text-slate-900">
+                  Engineer Benefits
                 </h3>
-                <ul className="space-y-1 text-sm text-gray-700">
-                  <li>✓ Get project opportunities from verified clients</li>
-                  <li>✓ Showcase your portfolio and expertise</li>
-                  <li>✓ Secure payment processing</li>
-                  <li>✓ Build your professional reputation</li>
+                <ul className="space-y-2 text-sm text-slate-700">
+                  <li className="flex gap-2">
+                    <span className="text-blue-600">✓</span> Get project
+                    opportunities from verified clients
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-blue-600">✓</span> Showcase your
+                    portfolio and expertise
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-blue-600">✓</span> Secure payment
+                    processing
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-blue-600">✓</span> Build your
+                    professional reputation
+                  </li>
                 </ul>
               </div>
             </TabsContent>
 
-            {/* Client Signup Form */}
             <TabsContent value="client" className="mt-6">
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-5" onSubmit={handleSubmit}>
                 {error ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700">
                     {error}
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Full Name */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="client-name">
-                      Full Name / Company Name *
+                    <Label htmlFor="client-name" className={requiredStarClass}>
+                      Full Name / Company Name
                     </Label>
                     <div className="relative">
                       <User
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -479,17 +554,18 @@ export function SignupPage() {
                         name="name"
                         type="text"
                         placeholder="Your name or company"
-                        className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
+                        className="pl-10"
                       />
                     </div>
                   </div>
 
-                  {/* Email */}
                   <div className="space-y-2">
-                    <Label htmlFor="client-email">Email Address *</Label>
+                    <Label htmlFor="client-email" className={requiredStarClass}>
+                      Email Address
+                    </Label>
                     <div className="relative">
                       <Mail
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -497,19 +573,20 @@ export function SignupPage() {
                         name="email"
                         type="email"
                         placeholder="your.email@example.com"
-                        className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
+                        className="pl-10"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Phone */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="client-phone">Phone Number *</Label>
+                    <Label htmlFor="client-phone" className={requiredStarClass}>
+                      Phone Number
+                    </Label>
                     <div className="relative">
                       <Phone
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -517,16 +594,20 @@ export function SignupPage() {
                         name="phone"
                         type="tel"
                         placeholder="+880 1700-000000"
-                        className="pl-10 h-11 border-2 focus:border-[#1E88E5]"
+                        className="pl-10"
                       />
                     </div>
                   </div>
 
-                  {/* Location */}
                   <div className="space-y-2">
-                    <Label htmlFor="client-location">Location *</Label>
+                    <Label
+                      htmlFor="client-location"
+                      className={requiredStarClass}
+                    >
+                      Location
+                    </Label>
                     <Select value={clientCity} onValueChange={setClientCity}>
-                      <SelectTrigger className="h-11 border-2">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
                       <SelectContent>
@@ -540,13 +621,12 @@ export function SignupPage() {
                   </div>
                 </div>
 
-                {/* Project Interest */}
                 <div className="space-y-2">
                   <Label htmlFor="project-type">
                     What type of project are you planning?
                   </Label>
                   <Select value={projectType} onValueChange={setProjectType}>
-                    <SelectTrigger className="h-11 border-2">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select project type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -569,13 +649,17 @@ export function SignupPage() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Password */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="client-password">Password *</Label>
+                    <Label
+                      htmlFor="client-password"
+                      className={requiredStarClass}
+                    >
+                      Password
+                    </Label>
                     <div className="relative">
                       <Lock
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -583,12 +667,14 @@ export function SignupPage() {
                         name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Create password"
-                        className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        className="pl-10 pr-10"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-blue-600"
                       >
                         {showPassword ? (
                           <EyeOff size={18} />
@@ -597,14 +683,29 @@ export function SignupPage() {
                         )}
                       </button>
                     </div>
+                    <div className="space-y-1">
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${passwordStrength.tone}`}
+                          style={{ width: passwordStrength.width }}
+                        />
+                      </div>
+                      <p className="text-xs font-medium text-slate-500">
+                        {passwordStrength.label}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="client-confirm">Confirm Password *</Label>
+                    <Label
+                      htmlFor="client-confirm"
+                      className={requiredStarClass}
+                    >
+                      Confirm Password
+                    </Label>
                     <div className="relative">
                       <Lock
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                         size={18}
                       />
                       <Input
@@ -612,14 +713,18 @@ export function SignupPage() {
                         name="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm password"
-                        className="pl-10 pr-10 h-11 border-2 focus:border-[#1E88E5]"
+                        value={confirmPassword}
+                        onChange={(event) =>
+                          setConfirmPassword(event.target.value)
+                        }
+                        className="pl-10 pr-10"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-blue-600"
                       >
                         {showConfirmPassword ? (
                           <EyeOff size={18} />
@@ -631,69 +736,80 @@ export function SignupPage() {
                   </div>
                 </div>
 
-                {/* Terms */}
-                <div className="flex items-start space-x-2">
-                  <input
-                    type="checkbox"
-                    id="client-terms"
-                    className="mt-1 w-4 h-4 text-[#1E88E5] rounded"
-                  />
+                <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <Checkbox id="client-terms" className="mt-0.5" />
                   <label
                     htmlFor="client-terms"
-                    className="text-sm text-gray-700"
+                    className="text-sm leading-6 text-slate-600"
                   >
                     I agree to the{" "}
                     <Link
                       to="/terms"
-                      className="text-[#1E88E5] hover:underline"
+                      className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
                     >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
                     <Link
                       to="/privacy"
-                      className="text-[#1E88E5] hover:underline"
+                      className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
                     >
                       Privacy Policy
                     </Link>
                   </label>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#FF8F00] hover:bg-[#F57C00] text-white h-12 text-lg font-bold disabled:opacity-60"
+                  className="w-full"
                 >
-                  <CheckCircle className="mr-2" size={20} />
-                  {isSubmitting
-                    ? "Creating Account..."
-                    : "Create Client Account"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="size-4" />
+                      Create Client Account
+                    </>
+                  )}
                 </Button>
               </form>
 
-              {/* Benefits */}
-              <div className="mt-6 p-4 bg-[#FF8F00]/10 rounded-lg">
-                <h3 className="font-bold text-[#1A1A1A] mb-2">
-                  Client Benefits:
+              <div className="mt-6 rounded-2xl border border-amber-100 bg-amber-50/60 p-5">
+                <h3 className="mb-3 font-semibold text-slate-900">
+                  Client Benefits
                 </h3>
-                <ul className="space-y-1 text-sm text-gray-700">
-                  <li>✓ Access 500+ verified civil engineers</li>
-                  <li>✓ Get AI-powered cost estimates instantly</li>
-                  <li>✓ Compare bids and choose the best fit</li>
-                  <li>✓ Secure milestone-based payments</li>
+                <ul className="space-y-2 text-sm text-slate-700">
+                  <li className="flex gap-2">
+                    <span className="text-amber-600">✓</span> Access 500+
+                    verified civil engineers
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-amber-600">✓</span> Get AI-powered
+                    cost estimates instantly
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-amber-600">✓</span> Compare bids and
+                    choose the best fit
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-amber-600">✓</span> Secure
+                    milestone-based payments
+                  </li>
                 </ul>
               </div>
             </TabsContent>
           </Tabs>
 
-          {/* Login Link */}
-          <div className="mt-6 text-center pt-6 border-t">
-            <p className="text-gray-600">
+          <div className="mt-6 border-t border-slate-200 pt-6 text-center">
+            <p className="text-slate-600">
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="text-[#1E88E5] font-semibold hover:underline"
+                className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
               >
                 Sign in
               </Link>
@@ -701,9 +817,8 @@ export function SignupPage() {
           </div>
         </motion.div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-6">
-          <Link to="/" className="text-gray-600 hover:text-[#1E88E5]">
+        <div className="mt-6 text-center">
+          <Link to="/" className="text-slate-500 hover:text-blue-600">
             ← Back to Home
           </Link>
         </div>

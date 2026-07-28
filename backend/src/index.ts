@@ -5,15 +5,11 @@ import http from "http";
 import { initSocket } from "./socket";
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
-const MONGO_URI =
-  process.env.MONGO_URI ||
-  "mongodb+srv://mabrurdcc2020_db_user:FFAOAWGcuqvaRBDf@cluster0.sumqfeb.mongodb.net/?appName=Cluster0";
+const MONGO_URI = process.env.MONGO_URI;
 
 async function start() {
-  if (!process.env.MONGO_URI) {
-    console.warn(
-      "MONGO_URI not found in environment — using provided fallback URI",
-    );
+  if (!MONGO_URI) {
+    throw new Error("MONGO_URI is required to start the backend");
   }
 
   await connectDB(MONGO_URI);

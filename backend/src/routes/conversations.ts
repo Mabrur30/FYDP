@@ -4,11 +4,12 @@ import {
   listMessages,
   postMessage,
 } from "../controllers/chatController";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
-router.get("/", listConversations);
-router.get("/:id/messages", listMessages);
-router.post("/:id/messages", postMessage);
+router.get("/", requireAuth, listConversations);
+router.get("/:id/messages", requireAuth, listMessages);
+router.post("/:id/messages", requireAuth, postMessage);
 
 export default router;

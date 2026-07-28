@@ -1,23 +1,75 @@
 import { Link, useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, MessageCircle, LogOut } from "lucide-react";
+import {
+  Menu,
+  X,
+  MessageCircle,
+  LogOut,
+  LayoutDashboard,
+  FileText,
+  Gavel,
+  DollarSign,
+  User,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { clearAuth, isAuthenticated } from "../utils/auth";
+import {
+  clearAuth,
+  getAuthRole,
+  getAuthUser,
+  isAuthenticated,
+} from "../utils/auth";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
+  const role = getAuthRole();
+  const authUser = getAuthUser();
+  const isEngineerDashboard =
+    authenticated &&
+    role === "engineer" &&
+    location.pathname.startsWith("/dashboard");
+  const dashboardBasePath = location.pathname.startsWith("/dashboard/engineer")
+    ? "/dashboard/engineer"
+    : "/dashboard";
+  const activeDashboardSection =
+    new URLSearchParams(location.search).get("section") || "overview";
 
   const isActive = (path: string) => location.pathname === path;
+
+  const isDashboardSectionActive = (section: string) =>
+    isEngineerDashboard && activeDashboardSection === section;
+
+  const messageTargetId = (() => {
+    const rawId = authUser?._id || authUser?.id;
+    if (!rawId) return null;
+
+    const numericId = Number(rawId);
+    return Number.isFinite(numericId) ? numericId : null;
+  })();
+
+  const messagesLink = isEngineerDashboard
+    ? messageTargetId
+      ? `${dashboardBasePath}?section=messages&conversation=${messageTargetId}`
+      : `${dashboardBasePath}?section=messages`
+    : messageTargetId
+      ? `/messages?conversation=${messageTargetId}`
+      : "/messages";
 
   function handleLogout() {
     clearAuth();
     setIsMenuOpen(false);
     navigate("/");
   }
+
+  const engineerSectionLinks = [
+    { label: "Overview", value: "overview", icon: LayoutDashboard },
+    { label: "Projects", value: "projects", icon: FileText },
+    { label: "Bids", value: "bids", icon: Gavel },
+    { label: "Earnings", value: "earnings", icon: DollarSign },
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
@@ -34,48 +86,70 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             {authenticated ? (
-              <>
-                <Link
-                  to="/cost-estimator"
-                  className={`text-base ${
-                    isActive("/cost-estimator")
-                      ? "text-[#1E88E5] font-semibold"
-                      : "text-[#1A1A1A] hover:text-[#1E88E5]"
-                  } transition-colors`}
-                >
-                  Cost Estimator
-                </Link>
-                <Link
-                  to="/engineers"
-                  className={`text-base ${
-                    isActive("/engineers")
-                      ? "text-[#1E88E5] font-semibold"
-                      : "text-[#1A1A1A] hover:text-[#1E88E5]"
-                  } transition-colors`}
-                >
-                  Find Engineers
-                </Link>
-                <Link
-                  to="/post-project"
-                  className={`text-base ${
-                    isActive("/post-project")
-                      ? "text-[#1E88E5] font-semibold"
-                      : "text-[#1A1A1A] hover:text-[#1E88E5]"
-                  } transition-colors`}
-                >
-                  Post Project
-                </Link>
-                <Link
-                  to="/network"
-                  className={`text-base ${
-                    isActive("/network")
-                      ? "text-[#1E88E5] font-semibold"
-                      : "text-[#1A1A1A] hover:text-[#1E88E5]"
-                  } transition-colors`}
-                >
-                  Network
-                </Link>
-              </>
+              isEngineerDashboard ? (
+                <>
+                  {engineerSectionLinks.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.value}
+                        to={`${dashboardBasePath}?section=${item.value}`}
+                        className={`inline-flex items-center gap-2 text-base transition-colors ${
+                          isDashboardSectionActive(item.value)
+                            ? "text-[#1E88E5] font-semibold"
+                            : "text-[#1A1A1A] hover:text-[#1E88E5]"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/cost-estimator"
+                    className={`text-base ${
+                      isActive("/cost-estimator")
+                        ? "text-[#1E88E5] font-semibold"
+                        : "text-[#1A1A1A] hover:text-[#1E88E5]"
+                    } transition-colors`}
+                  >
+                    Cost Estimator
+                  </Link>
+                  <Link
+                    to="/engineers"
+                    className={`text-base ${
+                      isActive("/engineers")
+                        ? "text-[#1E88E5] font-semibold"
+                        : "text-[#1A1A1A] hover:text-[#1E88E5]"
+                    } transition-colors`}
+                  >
+                    Find Engineers
+                  </Link>
+                  <Link
+                    to="/post-project"
+                    className={`text-base ${
+                      isActive("/post-project")
+                        ? "text-[#1E88E5] font-semibold"
+                        : "text-[#1A1A1A] hover:text-[#1E88E5]"
+                    } transition-colors`}
+                  >
+                    Post Project
+                  </Link>
+                  <Link
+                    to="/network"
+                    className={`text-base ${
+                      isActive("/network")
+                        ? "text-[#1E88E5] font-semibold"
+                        : "text-[#1A1A1A] hover:text-[#1E88E5]"
+                    } transition-colors`}
+                  >
+                    Network
+                  </Link>
+                </>
+              )
             ) : null}
           </nav>
 
@@ -83,30 +157,55 @@ export function Header() {
           <div className="hidden md:flex items-center space-x-4">
             {authenticated ? (
               <>
-                <Link
-                  to="/messages"
-                  className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <MessageCircle
-                    size={24}
-                    className={
-                      isActive("/messages")
-                        ? "text-[#1E88E5]"
-                        : "text-[#1A1A1A]"
-                    }
-                  />
-                  <span className="absolute top-0 right-0 bg-[#FF8F00] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    3
-                  </span>
-                </Link>
-                <Link to="/dashboard">
-                  <Button
-                    variant="outline"
-                    className="border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white"
+                {isEngineerDashboard ? (
+                  <>
+                    <Link
+                      to={messagesLink}
+                      className="relative rounded-full p-2 transition-colors hover:bg-gray-100"
+                      aria-label="Messages"
+                    >
+                      <MessageCircle
+                        size={24}
+                        className={
+                          isActive("/messages")
+                            ? "text-[#1E88E5]"
+                            : "text-[#1A1A1A]"
+                        }
+                      />
+                      <span className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF8F00] text-xs text-white">
+                        3
+                      </span>
+                    </Link>
+                    <Link
+                      to={`${dashboardBasePath}?section=profile`}
+                      className={`rounded-full p-2 transition-colors hover:bg-gray-100 ${
+                        isDashboardSectionActive("profile")
+                          ? "text-[#1E88E5]"
+                          : "text-[#1A1A1A]"
+                      }`}
+                      aria-label="Profile"
+                    >
+                      <User size={24} />
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    to={messagesLink}
+                    className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
-                    Dashboard
-                  </Button>
-                </Link>
+                    <MessageCircle
+                      size={24}
+                      className={
+                        isActive("/messages")
+                          ? "text-[#1E88E5]"
+                          : "text-[#1A1A1A]"
+                      }
+                    />
+                    <span className="absolute top-0 right-0 bg-[#FF8F00] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                      3
+                    </span>
+                  </Link>
+                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -152,50 +251,104 @@ export function Header() {
           <nav className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4">
               {authenticated ? (
-                <>
-                  <Link
-                    to="/cost-estimator"
-                    className={`text-base ${isActive("/cost-estimator") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Cost Estimator
-                  </Link>
-                  <Link
-                    to="/engineers"
-                    className={`text-base ${isActive("/engineers") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Find Engineers
-                  </Link>
-                  <Link
-                    to="/post-project"
-                    className={`text-base ${isActive("/post-project") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Post Project
-                  </Link>
-                  <Link
-                    to="/network"
-                    className={`text-base ${isActive("/network") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Network
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    className={`text-base ${isActive("/dashboard") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    type="button"
-                    className="text-left text-base text-[#1A1A1A]"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </>
+                isEngineerDashboard ? (
+                  <>
+                    {engineerSectionLinks.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.value}
+                          to={`${dashboardBasePath}?section=${item.value}`}
+                          className={`inline-flex items-center gap-2 text-base ${
+                            isDashboardSectionActive(item.value)
+                              ? "text-[#1E88E5] font-semibold"
+                              : "text-[#1A1A1A]"
+                          }`}
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Icon size={18} />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                    <Link
+                      to={messagesLink}
+                      className={`inline-flex items-center gap-2 text-base ${
+                        isActive("/messages")
+                          ? "text-[#1E88E5] font-semibold"
+                          : "text-[#1A1A1A]"
+                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <MessageCircle size={18} />
+                      <span>Messages</span>
+                    </Link>
+                    <Link
+                      to={`${dashboardBasePath}?section=profile`}
+                      className={`inline-flex items-center gap-2 text-base ${
+                        isDashboardSectionActive("profile")
+                          ? "text-[#1E88E5] font-semibold"
+                          : "text-[#1A1A1A]"
+                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <User size={18} />
+                      <span>Profile</span>
+                    </Link>
+                    <button
+                      type="button"
+                      className="text-left text-base text-[#1A1A1A]"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/cost-estimator"
+                      className={`text-base ${isActive("/cost-estimator") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Cost Estimator
+                    </Link>
+                    <Link
+                      to="/engineers"
+                      className={`text-base ${isActive("/engineers") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Find Engineers
+                    </Link>
+                    <Link
+                      to="/post-project"
+                      className={`text-base ${isActive("/post-project") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Post Project
+                    </Link>
+                    <Link
+                      to="/network"
+                      className={`text-base ${isActive("/network") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Network
+                    </Link>
+                    <Link
+                      to="/messages"
+                      className={`text-base ${isActive("/messages") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Messages
+                    </Link>
+                    <button
+                      type="button"
+                      className="text-left text-base text-[#1A1A1A]"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </>
+                )
               ) : (
                 <>
                   <Link
