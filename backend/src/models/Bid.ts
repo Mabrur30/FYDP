@@ -4,7 +4,13 @@ export interface IBid extends Document {
   engineerId: mongoose.Types.ObjectId;
   projectId: mongoose.Types.ObjectId;
   amount: number;
-  status: "pending" | "under_review" | "shortlisted" | "won" | "lost";
+  status:
+    | "pending"
+    | "under_review"
+    | "shortlisted"
+    | "won"
+    | "lost"
+    | "withdrawn";
   submittedAt: Date;
   deadline?: Date;
   proposal?: string;
@@ -29,7 +35,14 @@ const BidSchema = new Schema(
     amount: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: ["pending", "under_review", "shortlisted", "won", "lost"],
+      enum: [
+        "pending",
+        "under_review",
+        "shortlisted",
+        "won",
+        "lost",
+        "withdrawn",
+      ],
       default: "pending",
     },
     submittedAt: { type: Date, default: Date.now },

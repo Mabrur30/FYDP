@@ -108,6 +108,14 @@ type DashboardConversation = {
   messages: DashboardMessage[];
 };
 
+type DashboardNotification = {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+};
+
 function createEmptyProfileForm(): EngineerProfileForm {
   return {
     name: "",
@@ -279,15 +287,29 @@ export function EngineerDashboardPage() {
   const [bids, setBids] = useState<
     {
       id: number | string;
+      projectId: string;
       project: string;
       client: string;
+      amount: number;
       budget: string;
       deadline: string;
       status: string;
       submitted: string;
+      proposal: string;
     }[]
   >([]);
   const [bidsLoading, setBidsLoading] = useState(false);
+
+  const [availableProjects, setAvailableProjects] = useState<
+    {
+      id: string;
+      title: string;
+      location: string;
+      budget: number;
+    }[]
+  >([]);
+  const [availableProjectsLoading, setAvailableProjectsLoading] =
+    useState(false);
 
   const [conversations, setConversations] = useState<DashboardConversation[]>(
     [],
@@ -305,6 +327,11 @@ export function EngineerDashboardPage() {
     }[]
   >([]);
   const [earningsLoading, setEarningsLoading] = useState(false);
+
+  const [notifications, setNotifications] = useState<DashboardNotification[]>(
+    [],
+  );
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   async function refreshProfile() {
     if (!engineerId) {
@@ -346,16 +373,60 @@ export function EngineerDashboardPage() {
     if (!engineerId) return;
     setBidsLoading(true);
     try {
-      const res = await fetch(`/api/engineers/${engineerId}/bids`, {
+      const res = await fetch(`/api/bids/engineer/${engineerId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("Unable to load bids");
       const data = await res.json();
-      setBids(data || []);
+      setBids(
+        (data || []).map((bid: any) => ({
+          id: String(bid.id || bid._id || ""),
+          projectId: String(bid.projectId || ""),
+          project: bid.projectTitle || bid.project || "Project",
+          client: bid.clientName || bid.client || "Client",
+          amount: Number(bid.amount || 0),
+          budget: formatBangladeshAmount(Number(bid.amount || 0)),
+          deadline: bid.deadline
+            ? String(bid.deadline).slice(0, 10)
+            : "Not available",
+          status: String(bid.status || "pending")
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (char: string) => char.toUpperCase()),
+          submitted: bid.submittedAt
+            ? String(bid.submittedAt).slice(0, 10)
+            : "Not available",
+          proposal: bid.proposal || "",
+        })),
+      );
     } catch (err) {
       console.error(err);
     } finally {
       setBidsLoading(false);
+    }
+  }
+
+  async function loadAvailableProjects() {
+    setAvailableProjectsLoading(true);
+    try {
+      const res = await fetch(`/api/projects`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Unable to load available projects");
+      const data = await res.json();
+      setAvailableProjects(
+        (data || [])
+          .filter((project: any) => String(project.status || "") === "open")
+          .map((project: any) => ({
+            id: String(project.id || project._id || ""),
+            title: project.title || "Project",
+            location: project.location || "Bangladesh",
+            budget: Number(project.budget || 0),
+          })),
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAvailableProjectsLoading(false);
     }
   }
 
@@ -408,6 +479,181 @@ export function EngineerDashboardPage() {
     }
   }
 
+  async function loadNotifications() {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Unable to load notifications");
+      const data = await res.json();
+      setUnreadNotifications(Number(data?.unreadCount || 0));
+      setNotifications(
+        (data?.items || []).map((item: any) => ({
+          id: String(item.id || item._id || ""),
+          title: item.title || "Notification",
+          message: item.message || "",
+          read: Boolean(item.read),
+          createdAt: item.createdAt || "",
+        })),
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function submitBidForProject(projectId: string, projectTitle: string) {
+    const amountInput = window.prompt(
+      `Enter bid amount for ${projectTitle} (BDT)`,
+      "",
+    );
+    if (!amountInput) return;
+
+    const amount = Number(amountInput);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      window.alert("Please provide a valid positive amount.");
+      return;
+    }
+
+    const proposal =
+      window.prompt("Enter a short proposal (optional)", "") || "";
+    const deadline =
+      window.prompt("Estimated completion date (YYYY-MM-DD, optional)", "") ||
+      "";
+
+    try {
+      const res = await fetch(`/api/bids`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          projectId,
+          amount,
+          proposal,
+          deadline: deadline || undefined,
+        }),
+      });
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        throw new Error(data?.message || "Unable to submit bid");
+      }
+
+      await Promise.all([
+        loadBids(),
+        loadAvailableProjects(),
+        loadNotifications(),
+      ]);
+      window.alert("Bid submitted successfully.");
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Unable to submit bid");
+    }
+  }
+
+  async function editBid(
+    bidId: string | number,
+    currentAmount: number,
+    currentProposal: string,
+  ) {
+    const amountInput = window.prompt(
+      "Update bid amount",
+      String(currentAmount),
+    );
+    if (!amountInput) return;
+
+    const amount = Number(amountInput);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      window.alert("Please provide a valid positive amount.");
+      return;
+    }
+
+    const proposal =
+      window.prompt("Update proposal", currentProposal || "") || "";
+
+    try {
+      const res = await fetch(`/api/bids/${bidId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ amount, proposal }),
+      });
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        throw new Error(data?.message || "Unable to update bid");
+      }
+
+      await loadBids();
+      window.alert("Bid updated.");
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Unable to update bid");
+    }
+  }
+
+  async function withdrawBid(bidId: string | number) {
+    const confirmed = window.confirm("Withdraw this bid?");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/bids/${bidId}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        throw new Error(data?.message || "Unable to withdraw bid");
+      }
+
+      await Promise.all([
+        loadBids(),
+        loadAvailableProjects(),
+        loadNotifications(),
+      ]);
+      window.alert("Bid withdrawn.");
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Unable to withdraw bid",
+      );
+    }
+  }
+
+  async function updateProjectStatus(
+    projectId: string | number,
+    status: "in_progress" | "completed",
+  ) {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        throw new Error(data?.message || "Unable to update project status");
+      }
+
+      await Promise.all([loadProjects(), loadEarnings(), loadNotifications()]);
+      window.alert("Project status updated.");
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Unable to update project status",
+      );
+    }
+  }
+
   useEffect(() => {
     let isMounted = true;
 
@@ -441,8 +687,10 @@ export function EngineerDashboardPage() {
     loadProfile();
     loadProjects();
     loadBids();
+    loadAvailableProjects();
     loadConversations();
     loadEarnings();
+    loadNotifications();
 
     return () => {
       isMounted = false;
@@ -714,6 +962,32 @@ export function EngineerDashboardPage() {
                     >
                       View All Messages →
                     </button>
+
+                    <div className="mt-6 border-t pt-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h4 className="font-semibold text-[#1A1A1A]">
+                          Notifications
+                        </h4>
+                        <span className="rounded-full bg-[#1E88E5]/10 px-2 py-0.5 text-xs font-semibold text-[#1E88E5]">
+                          {unreadNotifications} unread
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {notifications.slice(0, 3).map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-lg bg-gray-50 p-2"
+                          >
+                            <p className="text-sm font-medium text-[#1A1A1A]">
+                              {item.title}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {item.message}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </>
@@ -807,13 +1081,39 @@ export function EngineerDashboardPage() {
                             {project.deadline}
                           </td>
                           <td className="px-6 py-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-[#1E88E5] border-[#1E88E5]"
-                            >
-                              View Details
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-[#1E88E5] border-[#1E88E5]"
+                              >
+                                View Details
+                              </Button>
+                              {project.status === "Review" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    updateProjectStatus(
+                                      project.id,
+                                      "in_progress",
+                                    )
+                                  }
+                                >
+                                  Start
+                                </Button>
+                              )}
+                              {project.status === "In Progress" && (
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() =>
+                                    updateProjectStatus(project.id, "completed")
+                                  }
+                                >
+                                  Mark Complete
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -893,9 +1193,21 @@ export function EngineerDashboardPage() {
                           <Button
                             variant="outline"
                             className="border-gray-300 text-gray-700"
+                            onClick={() =>
+                              editBid(bid.id, bid.amount, bid.proposal)
+                            }
                           >
                             Edit Bid
                           </Button>
+                          {bid.status !== "Won" && bid.status !== "Lost" && (
+                            <Button
+                              variant="outline"
+                              className="border-rose-300 text-rose-700"
+                              onClick={() => withdrawBid(bid.id)}
+                            >
+                              Withdraw
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -906,12 +1218,40 @@ export function EngineerDashboardPage() {
                   <h3 className="text-xl font-bold text-[#1A1A1A] mb-4">
                     Available Projects
                   </h3>
-                  <p className="text-gray-600 mb-4">
-                    Browse and submit bids for new construction projects
-                  </p>
-                  <Button className="bg-[#FF8F00] hover:bg-[#F57C00] text-white">
-                    Browse All Projects
-                  </Button>
+                  {availableProjectsLoading ? (
+                    <p className="text-sm text-gray-600">Loading projects...</p>
+                  ) : availableProjects.length === 0 ? (
+                    <p className="text-sm text-gray-600">
+                      No open projects are available right now.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {availableProjects.slice(0, 5).map((project) => (
+                        <div
+                          key={project.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3"
+                        >
+                          <div>
+                            <p className="font-semibold text-[#1A1A1A]">
+                              {project.title}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {project.location} • BDT{" "}
+                              {formatBangladeshAmount(project.budget)}
+                            </p>
+                          </div>
+                          <Button
+                            className="bg-[#FF8F00] hover:bg-[#F57C00] text-white"
+                            onClick={() =>
+                              submitBidForProject(project.id, project.title)
+                            }
+                          >
+                            Submit Bid
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

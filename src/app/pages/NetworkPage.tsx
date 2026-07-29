@@ -167,7 +167,9 @@ export function NetworkPage() {
           postsData,
         ] = await Promise.all([
           fetch("/api/engineers").then((res) => readJsonResponse<any[]>(res)),
-          fetch("/api/projects").then((res) => readJsonResponse<any[]>(res)),
+          fetch("/api/projects", { headers }).then((res) =>
+            readJsonResponse<any[]>(res),
+          ),
           fetch("/api/network/connections", { headers }).then((res) =>
             readJsonResponse<any[]>(res),
           ),

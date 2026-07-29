@@ -1,0 +1,661 @@
+{
+  "info": {
+    "name": "Civilhub API Baseline",
+    "description": "Baseline collection for all currently mounted Civilhub endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "engineerToken", "value": "" },
+    { "key": "clientToken", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "phaseId", "value": "" },
+    { "key": "bidId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "engineerId", "value": "" },
+    { "key": "clientId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "reviewId", "value": "" },
+    { "key": "conversationId", "value": "" },
+    { "key": "requesterId", "value": "" },
+    { "key": "networkPostId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Engineer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eng Example\",\n  \"email\": \"eng@example.com\",\n  \"phone\": \"01710000000\",\n  \"password\": \"Password123!\",\n  \"specialization\": \"Structural\",\n  \"location\": \"Dhaka\",\n  \"experience_years\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/engineer/register",
+            "description": "Example response:\n{\n  \"token\": \"<jwt>\",\n  \"user\": {\n    \"_id\": \"...\",\n    \"name\": \"Eng Example\",\n    \"email\": \"eng@example.com\",\n    \"phone\": \"01710000000\",\n    \"specialization\": \"Structural\",\n    \"location\": \"Dhaka\"\n  }\n}"
+          }
+        },
+        {
+          "name": "Register Client",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Client Example\",\n  \"email\": \"client@example.com\",\n  \"phone\": \"01810000000\",\n  \"password\": \"Password123!\",\n  \"location\": \"Dhaka\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/client/register",
+            "description": "Example response:\n{\n  \"token\": \"<jwt>\",\n  \"user\": {\n    \"_id\": \"...\",\n    \"name\": \"Client Example\",\n    \"email\": \"client@example.com\",\n    \"phone\": \"01810000000\",\n    \"location\": \"Dhaka\"\n  }\n}"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"eng@example.com\",\n  \"password\": \"Password123!\",\n  \"role\": \"engineer\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Example response:\n{\n  \"token\": \"<jwt>\",\n  \"user\": {\n    \"_id\": \"...\",\n    \"email\": \"eng@example.com\"\n  }\n}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/projects",
+            "description": "Example response item:\n{\n  \"id\": \"...\",\n  \"title\": \"House Build\",\n  \"description\": \"...\",\n  \"location\": \"Dhaka\",\n  \"budget\": 5000000,\n  \"status\": \"open\",\n  \"client_id\": \"...\",\n  \"engineer_id\": null\n}"
+          }
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Residential Duplex\",\n  \"description\": \"Need complete structural and site supervision\",\n  \"location\": \"Dhaka\",\n  \"budget\": 8500000,\n  \"client_id\": \"{{clientId}}\",\n  \"ownerId\": \"{{clientId}}\",\n  \"status\": \"open\",\n  \"type\": \"Residential\",\n  \"area\": 2500,\n  \"floors\": \"G+5\",\n  \"attachments\": [\n    {\n      \"filename\": \"plan.pdf\",\n      \"originalName\": \"plan.pdf\",\n      \"mimeType\": \"application/pdf\",\n      \"size\": 12345,\n      \"url\": \"/uploads/plan.pdf\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/projects",
+            "description": "Returns Project DTO with id, status, client_id, engineer_id, and metadata fields."
+          }
+        },
+        {
+          "name": "Get Project Progress",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/progress",
+            "description": "Example response:\n{\n  \"projectId\": \"...\",\n  \"overallStatus\": \"in_progress\",\n  \"overallPercentComplete\": 62,\n  \"phases\": [\n    {\n      \"id\": \"...\",\n      \"name\": \"Foundation\",\n      \"order\": 1,\n      \"status\": \"completed\",\n      \"percentComplete\": 100,\n      \"dueDate\": \"2026-09-15T00:00:00.000Z\",\n      \"completedAt\": \"2026-09-12T12:30:00.000Z\"\n    }\n  ]\n}"
+          }
+        },
+        {
+          "name": "Get Project By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/projects/{{projectId}}",
+            "description": "Returns full Project DTO for the requested id."
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Residential Duplex Revised\",\n  \"budget\": 9000000,\n  \"location\": \"Dhaka\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects/{{projectId}}",
+            "description": "Returns updated Project DTO."
+          }
+        },
+        {
+          "name": "Update Project Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/status",
+            "description": "Allowed transitions:\nopen -> in_progress\nin_progress -> completed\nReturns updated Project DTO."
+          }
+        },
+        {
+          "name": "Update Project Phase",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"awaiting_approval\",\n  \"percentComplete\": 85,\n  \"name\": \"Superstructure\",\n  \"dueDate\": \"2026-10-10\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/phases/{{phaseId}}",
+            "description": "Example response:\n{\n  \"id\": \"...\",\n  \"name\": \"Superstructure\",\n  \"order\": 2,\n  \"status\": \"awaiting_approval\",\n  \"percentComplete\": 85,\n  \"dueDate\": \"2026-10-10T00:00:00.000Z\",\n  \"completedAt\": null\n}"
+          }
+        },
+        {
+          "name": "Update Project Phase (Client Forbidden 403)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"percentComplete\": 60\n}"
+            },
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/phases/{{phaseId}}",
+            "description": "Authorization negative test: with a client token this endpoint must return 403 Forbidden."
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/projects/{{projectId}}",
+            "description": "Returns 204 on success."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bids",
+      "item": [
+        {
+          "name": "List Engineer Bids",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/bids/engineer/{{engineerId}}",
+            "description": "Response item: { id, engineerId, projectId, projectTitle, clientName, amount, status, submittedAt, deadline, proposal }."
+          }
+        },
+        {
+          "name": "List Project Bids",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/bids/project/{{projectId}}",
+            "description": "Response item: { id, engineerId, engineerName, engineerTitle, amount, status, proposal, deadline, submittedAt }."
+          }
+        },
+        {
+          "name": "Create Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"amount\": 4700000,\n  \"proposal\": \"Complete structural + MEP coordination\",\n  \"deadline\": \"2026-12-20\"\n}"
+            },
+            "url": "{{baseUrl}}/api/bids",
+            "description": "Returns created bid in normalized DTO shape."
+          }
+        },
+        {
+          "name": "Update Bid",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 4800000,\n  \"proposal\": \"Updated scope with revised timeline\"\n}"
+            },
+            "url": "{{baseUrl}}/api/bids/{{bidId}}"
+          }
+        },
+        {
+          "name": "Withdraw Bid",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/bids/{{bidId}}",
+            "description": "Example response: { \"id\": \"...\", \"status\": \"withdrawn\" }"
+          }
+        },
+        {
+          "name": "Award Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{clientToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/bids/{{bidId}}/award",
+            "description": "Example response:\n{\n  \"bidId\": \"...\",\n  \"projectId\": \"...\",\n  \"projectStatus\": \"in_progress\",\n  \"assignedEngineerId\": \"...\"\n}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/notifications",
+            "description": "Example response:\n{\n  \"unreadCount\": 2,\n  \"items\": [\n    {\n      \"id\": \"...\",\n      \"type\": \"project_status_changed\",\n      \"title\": \"Project status updated\",\n      \"message\": \"...\",\n      \"read\": false,\n      \"projectId\": \"...\",\n      \"bidId\": null,\n      \"createdAt\": \"2026-07-30T09:00:00.000Z\"\n    }\n  ]\n}"
+          }
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+            "description": "Example response: { \"id\": \"...\", \"read\": true }"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Engineers",
+      "item": [
+        {
+          "name": "List Engineers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/engineers",
+            "description": "Returns array of engineer DTOs from Engineer model."
+          }
+        },
+        {
+          "name": "Create Engineer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineer From Admin\",\n  \"email\": \"eng.admin@example.com\",\n  \"phone\": \"01722222222\",\n  \"password\": \"Password123!\",\n  \"specialization\": \"Geotechnical\",\n  \"location\": \"Dhaka\",\n  \"experience_years\": 8\n}"
+            },
+            "url": "{{baseUrl}}/api/engineers"
+          }
+        },
+        {
+          "name": "Get Engineer Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/engineers/{{engineerId}}/profile",
+            "description": "Includes engineer, summary, stats, projects, and reviews arrays."
+          }
+        },
+        {
+          "name": "Get Engineer Projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/engineers/{{engineerId}}/projects"
+          }
+        },
+        {
+          "name": "Get Engineer Bids Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/engineers/{{engineerId}}/bids"
+          }
+        },
+        {
+          "name": "Get Engineer Earnings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/engineers/{{engineerId}}/earnings",
+            "description": "Returns { summary: {total, thisMonth, pending}, items: [...] }."
+          }
+        },
+        {
+          "name": "Get Engineer By Id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/engineers/{{engineerId}}"
+          }
+        },
+        {
+          "name": "Update Engineer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{engineerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Engineer\",\n  \"title\": \"Senior Structural Engineer\",\n  \"bio\": \"15 years in commercial projects\",\n  \"specialties\": [\"RCC\", \"High-rise\"],\n  \"hourlyRate\": \"3000-4500\"\n}"
+            },
+            "url": "{{baseUrl}}/api/engineers/{{engineerId}}"
+          }
+        },
+        {
+          "name": "Delete Engineer",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/engineers/{{engineerId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "List Conversations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/conversations",
+            "description": "Returns conversation DTO list with id, userId, name, title, image, lastMessage, lastMessageTime, unreadCount, online."
+          }
+        },
+        {
+          "name": "List Messages",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages"
+          }
+        },
+        {
+          "name": "Post Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senderId\": \"{{engineerId}}\",\n  \"text\": \"Hello, this is an update on your project.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+            "description": "Example response: { id, senderId, text, timestamp, read }."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Network",
+      "item": [
+        {
+          "name": "Get Connections",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/network/connections"
+          }
+        },
+        {
+          "name": "Get Requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/network/requests",
+            "description": "Example response: { incoming: [...], outgoing: [...] }"
+          }
+        },
+        {
+          "name": "Create Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientId\": \"{{clientId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/network/requests"
+          }
+        },
+        {
+          "name": "Accept Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/network/requests/{{requesterId}}/accept",
+            "description": "Example response: { connection: { id, name, title, ... } }"
+          }
+        },
+        {
+          "name": "Reject Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/network/requests/{{requesterId}}/reject",
+            "description": "Returns 204 on success."
+          }
+        },
+        {
+          "name": "Get Network Posts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/network/posts",
+            "description": "Returns merged user and project feed post DTOs."
+          }
+        },
+        {
+          "name": "Create Network Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Sharing project progress update with my network.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/network/posts"
+          }
+        },
+        {
+          "name": "Like Network Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/network/posts/{{networkPostId}}/like",
+            "description": "Toggles like and returns updated post DTO."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clients"
+          }
+        },
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Client New\",\n  \"email\": \"new.client@example.com\",\n  \"phone\": \"01822222222\",\n  \"password\": \"Password123!\",\n  \"location\": \"Dhaka\"\n}"
+            },
+            "url": "{{baseUrl}}/api/clients"
+          }
+        },
+        {
+          "name": "Get Client By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/clients/{{clientId}}"
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Client Updated\",\n  \"location\": \"Chattogram\"\n}"
+            },
+            "url": "{{baseUrl}}/api/clients/{{clientId}}"
+          }
+        },
+        {
+          "name": "Delete Client",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/clients/{{clientId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Engineer Users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users?q=structural&location=Dhaka"
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Principal Engineer\",\n  \"bio\": \"Focused on urban infrastructure\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "List Reviews",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/reviews"
+          }
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"engineer_id\": \"{{engineerId}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"project_id\": \"{{projectId}}\",\n  \"rating\": 5,\n  \"comment\": \"Excellent delivery and communication.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/reviews"
+          }
+        },
+        {
+          "name": "Get Review By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}"
+          }
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Updated feedback after final handover.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}"
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/reviews/{{reviewId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "Upload Files",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/uploads",
+            "description": "Example response:\n{\n  \"files\": [\n    {\n      \"filename\": \"1720000000-plan.pdf\",\n      \"originalName\": \"plan.pdf\",\n      \"mimeType\": \"application/pdf\",\n      \"size\": 12345,\n      \"url\": \"/uploads/1720000000-plan.pdf\"\n    }\n  ]\n}"
+          }
+        }
+      ]
+    }
+  ]
+}

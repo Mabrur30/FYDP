@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   FileText,
@@ -31,6 +31,29 @@ type UploadedFile = {
   url: string;
 };
 
+async function readApiPayload(response: Response) {
+  const text = await response.text();
+  const contentType = response.headers.get("content-type") || "";
+  const looksLikeHtml =
+    contentType.includes("text/html") ||
+    text.trimStart().toLowerCase().startsWith("<!doctype") ||
+    text.trimStart().toLowerCase().startsWith("<html");
+
+  if (looksLikeHtml) {
+    throw new Error(
+      "Server returned HTML instead of JSON. Ensure backend is running on port 5000 and Vite proxy is active.",
+    );
+  }
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Server returned an invalid JSON response.");
+  }
+}
+
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -59,6 +82,7 @@ export function ProjectPostingPage() {
   const [paymentTerms, setPaymentTerms] = useState("");
   const token = getAuthToken();
   const authUser = getAuthUser();
+  const submitLockRef = useRef(false);
 
   const userId = authUser?._id || authUser?.id || "";
   const canSubmit = useMemo(
@@ -129,8 +153,7 @@ export function ProjectPostingPage() {
       body: formData,
     });
 
-    const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    const data = await readApiPayload(response);
     if (!response.ok) {
       throw new Error(data?.message || "Failed to upload attachments");
     }
@@ -145,6 +168,9 @@ export function ProjectPostingPage() {
   }
 
   async function handlePostProject() {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+
     setError("");
     setSuccessMessage("");
 
@@ -152,11 +178,17 @@ export function ProjectPostingPage() {
       setError(
         "Please fill required fields and agree to terms before posting.",
       );
+      submitLockRef.current = false;
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const submissionKey =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
       const uploadedFiles = await uploadAttachments();
 
       const payload = {
@@ -170,25 +202,27 @@ export function ProjectPostingPage() {
         floors,
         budget: budget[0],
         budgetFlexibility: flexibility,
+        duration,
         startDate,
         endDate,
         paymentTerms,
         additionalRequirements: additionalRequirements.trim(),
         attachments: uploadedFiles,
         status: "open",
+        submissionKey,
       };
 
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-idempotency-key": submissionKey,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });
 
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : null;
+      const data = await readApiPayload(response);
       if (!response.ok) {
         throw new Error(data?.message || "Unable to post project");
       }
@@ -203,6 +237,7 @@ export function ProjectPostingPage() {
       );
     } finally {
       setIsSubmitting(false);
+      submitLockRef.current = false;
     }
   }
 

@@ -11,14 +11,23 @@ import {
   DollarSign,
   User,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import {
   clearAuth,
   getAuthRole,
+  getAuthToken,
   getAuthUser,
   isAuthenticated,
 } from "../utils/auth";
+
+type HeaderProject = {
+  id?: string;
+  _id?: string;
+  client_id?: string;
+  ownerId?: string;
+  status?: string;
+};
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -26,6 +35,7 @@ export function Header() {
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
   const role = getAuthRole();
+  const token = getAuthToken();
   const authUser = getAuthUser();
   const isEngineerDashboard =
     authenticated &&
@@ -57,6 +67,71 @@ export function Header() {
     : messageTargetId
       ? `/messages?conversation=${messageTargetId}`
       : "/messages";
+
+  const [progressLink, setProgressLink] = useState("/projects");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function resolveProgressLink() {
+      if (!authenticated || role !== "client") {
+        if (isMounted) setProgressLink("/projects");
+        return;
+      }
+
+      const currentUserId = String(authUser?._id || authUser?.id || "");
+      if (!currentUserId) {
+        if (isMounted) setProgressLink("/projects");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/projects", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        const text = await response.text();
+        const data = text ? (JSON.parse(text) as HeaderProject[]) : [];
+
+        if (!response.ok || !Array.isArray(data)) {
+          if (isMounted) setProgressLink("/projects");
+          return;
+        }
+
+        const activeProjects = data.filter((project) => {
+          const projectClientId = String(project.client_id || "");
+          const projectOwnerId = String(project.ownerId || "");
+          const status = String(project.status || "").toLowerCase();
+          const belongsToCurrentUser =
+            projectClientId === currentUserId ||
+            projectOwnerId === currentUserId;
+          const isActive = status !== "completed" && status !== "cancelled";
+          return belongsToCurrentUser && isActive;
+        });
+
+        if (isMounted) {
+          if (activeProjects.length === 1) {
+            const projectId = String(
+              activeProjects[0].id || activeProjects[0]._id || "",
+            );
+            setProgressLink(
+              projectId ? `/projects/${projectId}/progress` : "/projects",
+            );
+          } else {
+            setProgressLink("/projects");
+          }
+        }
+      } catch {
+        if (isMounted) setProgressLink("/projects");
+      }
+    }
+
+    resolveProgressLink();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUser?._id, authUser?.id, authenticated, role, token]);
 
   function handleLogout() {
     clearAuth();
@@ -147,6 +222,27 @@ export function Header() {
                     } transition-colors`}
                   >
                     Network
+                  </Link>
+                  <Link
+                    to="/projects"
+                    className={`text-base ${
+                      isActive("/projects") || isActive("/dashboard/client")
+                        ? "text-[#1E88E5] font-semibold"
+                        : "text-[#1A1A1A] hover:text-[#1E88E5]"
+                    } transition-colors`}
+                  >
+                    My Projects
+                  </Link>
+                  <Link
+                    to={progressLink}
+                    className={`text-base ${
+                      location.pathname.includes("/projects/") &&
+                      location.pathname.endsWith("/progress")
+                        ? "text-[#1E88E5] font-semibold"
+                        : "text-[#1A1A1A] hover:text-[#1E88E5]"
+                    } transition-colors`}
+                  >
+                    Progress
                   </Link>
                 </>
               )
@@ -332,6 +428,20 @@ export function Header() {
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Network
+                    </Link>
+                    <Link
+                      to="/projects"
+                      className={`text-base ${isActive("/projects") || isActive("/dashboard/client") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      My Projects
+                    </Link>
+                    <Link
+                      to={progressLink}
+                      className={`text-base ${location.pathname.includes("/projects/") && location.pathname.endsWith("/progress") ? "text-[#1E88E5] font-semibold" : "text-[#1A1A1A]"}`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Progress
                     </Link>
                     <Link
                       to="/messages"

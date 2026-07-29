@@ -35,6 +35,8 @@ function mapBidStatus(status: string) {
       return "Won";
     case "lost":
       return "Lost";
+    case "withdrawn":
+      return "Withdrawn";
     default:
       return "Pending";
   }

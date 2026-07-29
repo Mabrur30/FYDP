@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   Briefcase,
@@ -32,6 +33,26 @@ type SuggestedEngineer = {
   name: string;
   title?: string;
   specialization?: string;
+};
+
+type ProjectBid = {
+  id: string;
+  engineerId: string;
+  engineerName: string;
+  engineerTitle: string;
+  amount: number;
+  status: string;
+  proposal: string;
+  deadline?: string;
+  submittedAt?: string;
+};
+
+type DashboardNotification = {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
 };
 
 function formatCurrency(value: number) {
@@ -73,8 +94,16 @@ export function ClientDashboardPage() {
     [],
   );
   const [engineers, setEngineers] = useState<SuggestedEngineer[]>([]);
+  const [projectBids, setProjectBids] = useState<Record<string, ProjectBid[]>>(
+    {},
+  );
+  const [notifications, setNotifications] = useState<DashboardNotification[]>(
+    [],
+  );
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshSeed, setRefreshSeed] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -94,7 +123,9 @@ export function ClientDashboardPage() {
       try {
         const [projectsRes, conversationsRes, engineersRes] = await Promise.all(
           [
-            fetch("/api/projects"),
+            fetch("/api/projects", {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            }),
             fetch("/api/conversations", {
               headers: token ? { Authorization: `Bearer ${token}` } : {},
             }),
@@ -166,10 +197,69 @@ export function ClientDashboardPage() {
             }),
           );
 
+        const bidsEntries = await Promise.all(
+          clientProjects.map(async (project) => {
+            try {
+              const bidsRes = await fetch(`/api/bids/project/${project.id}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              });
+              const bidsText = await bidsRes.text();
+              const bidsData = bidsText ? JSON.parse(bidsText) : [];
+
+              if (!bidsRes.ok) {
+                return [project.id, []] as const;
+              }
+
+              const mapped = (Array.isArray(bidsData) ? bidsData : []).map(
+                (bid: any): ProjectBid => ({
+                  id: String(bid.id || bid._id || ""),
+                  engineerId: String(bid.engineerId || ""),
+                  engineerName: bid.engineerName || "Engineer",
+                  engineerTitle: bid.engineerTitle || "Civil Engineer",
+                  amount: Number(bid.amount || 0),
+                  status: String(bid.status || "pending"),
+                  proposal: bid.proposal || "",
+                  deadline: bid.deadline,
+                  submittedAt: bid.submittedAt,
+                }),
+              );
+
+              return [project.id, mapped] as const;
+            } catch {
+              return [project.id, []] as const;
+            }
+          }),
+        );
+
+        const notificationsRes = await fetch("/api/notifications", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const notificationsText = await notificationsRes.text();
+        const notificationsData = notificationsText
+          ? JSON.parse(notificationsText)
+          : null;
+
+        if (!notificationsRes.ok) {
+          throw new Error(
+            notificationsData?.message || "Unable to load notifications",
+          );
+        }
+
         if (isMounted) {
           setProjects(clientProjects);
           setConversations(mappedConversations);
           setEngineers(suggestedEngineers);
+          setProjectBids(Object.fromEntries(bidsEntries));
+          setUnreadNotifications(Number(notificationsData?.unreadCount || 0));
+          setNotifications(
+            (notificationsData?.items || []).map((item: any) => ({
+              id: String(item.id || item._id || ""),
+              title: item.title || "Notification",
+              message: item.message || "",
+              read: Boolean(item.read),
+              createdAt: item.createdAt || "",
+            })),
+          );
         }
       } catch (loadError) {
         if (isMounted) {
@@ -191,7 +281,53 @@ export function ClientDashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [token, userId]);
+  }, [refreshSeed, token, userId]);
+
+  async function awardBid(bidId: string) {
+    try {
+      const res = await fetch(`/api/bids/${bidId}/award`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        throw new Error(data?.message || "Unable to award bid");
+      }
+
+      setRefreshSeed((value) => value + 1);
+      window.alert("Bid awarded and project moved to In Progress.");
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Unable to award bid");
+    }
+  }
+
+  async function markProjectCompleted(projectId: string) {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status: "completed" }),
+      });
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        throw new Error(data?.message || "Unable to complete project");
+      }
+
+      setRefreshSeed((value) => value + 1);
+      window.alert("Project marked as completed.");
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Unable to complete project",
+      );
+    }
+  }
 
   const openRequests = useMemo(
     () => projects.filter((project) => project.status === "open").length,
@@ -293,6 +429,92 @@ export function ClientDashboardPage() {
                     <Clock size={14} />
                     <span>Updated {formatUpdatedLabel(project.updatedAt)}</span>
                   </div>
+
+                  <div className="mt-3 rounded-lg bg-gray-50 p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Bid Comparison
+                    </p>
+
+                    {(projectBids[project.id] || []).length === 0 ? (
+                      <p className="text-sm text-gray-600">
+                        No bids received for this project yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {(projectBids[project.id] || []).map((bid) => (
+                          <div
+                            key={bid.id}
+                            className="flex items-start justify-between gap-3 rounded border border-gray-200 bg-white p-2"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-[#1A1A1A]">
+                                {bid.engineerName}
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {bid.engineerTitle}
+                              </p>
+                              {bid.proposal ? (
+                                <p className="mt-1 text-xs text-gray-700">
+                                  {bid.proposal}
+                                </p>
+                              ) : null}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-[#1E88E5]">
+                                BDT {formatCurrency(bid.amount)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {String(bid.status)
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (char) =>
+                                    char.toUpperCase(),
+                                  )}
+                              </p>
+                              {project.status !== "completed" &&
+                              bid.status !== "won" &&
+                              bid.status !== "lost" &&
+                              bid.status !== "withdrawn" ? (
+                                <button
+                                  type="button"
+                                  className="mt-1 rounded bg-[#1E88E5] px-2 py-1 text-xs font-semibold text-white hover:bg-[#1565C0]"
+                                  onClick={() => awardBid(bid.id)}
+                                >
+                                  Award
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {project.status === "in_progress" ? (
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700"
+                        onClick={() => markProjectCompleted(project.id)}
+                      >
+                        Mark Completed
+                      </button>
+                      <Link
+                        to={`/projects/${project.id}/progress`}
+                        className="rounded border border-[#1E88E5] px-3 py-1 text-xs font-semibold text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white"
+                      >
+                        Track Progress
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <Link
+                        to={`/projects/${project.id}/progress`}
+                        className="rounded border border-[#1E88E5] px-3 py-1 text-xs font-semibold text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white"
+                      >
+                        Track Progress
+                      </Link>
+                    </div>
+                  )}
                 </div>
               ))}
               {!loading && topProjects.length === 0 ? (
@@ -344,6 +566,28 @@ export function ClientDashboardPage() {
             </div>
             <div className="rounded-lg bg-gray-50 p-4">
               You currently have {unreadMessages} unread message(s).
+            </div>
+          </div>
+
+          <div className="mt-6 border-t pt-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-semibold text-[#1A1A1A]">Notifications</h3>
+              <span className="rounded-full bg-[#1E88E5]/10 px-2 py-0.5 text-xs font-semibold text-[#1E88E5]">
+                {unreadNotifications} unread
+              </span>
+            </div>
+            <div className="space-y-2">
+              {notifications.slice(0, 4).map((item) => (
+                <div key={item.id} className="rounded-lg bg-gray-50 p-3">
+                  <p className="text-sm font-semibold text-[#1A1A1A]">
+                    {item.title}
+                  </p>
+                  <p className="text-xs text-gray-600">{item.message}</p>
+                </div>
+              ))}
+              {!loading && notifications.length === 0 ? (
+                <p className="text-sm text-gray-500">No notifications yet.</p>
+              ) : null}
             </div>
           </div>
         </section>

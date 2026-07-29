@@ -11,6 +11,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { NetworkPage } from "./pages/NetworkPage";
 import { ChatPage } from "./pages/ChatPage";
+import { ProjectProgressPage } from "./pages/ProjectProgressPage";
 import { PublicOnly, RequireAuth } from "./components/RouteGuards";
 
 export const router = createBrowserRouter([
@@ -59,6 +60,10 @@ export const router = createBrowserRouter([
         element: <ClientDashboardPage />,
       },
       {
+        path: "/projects",
+        element: <ClientDashboardPage />,
+      },
+      {
         path: "/engineer/:id",
         element: <EngineerProfilePage />,
       },
@@ -69,6 +74,10 @@ export const router = createBrowserRouter([
       {
         path: "/messages",
         element: <ChatPage />,
+      },
+      {
+        path: "/projects/:id/progress",
+        element: <ProjectProgressPage />,
       },
     ],
   },

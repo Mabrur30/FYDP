@@ -14,10 +14,12 @@ export interface IProject extends Document {
   area?: number;
   floors?: string;
   budgetFlexibility?: string;
+  duration?: string;
   startDate?: Date;
   endDate?: Date;
   paymentTerms?: string;
   additionalRequirements?: string;
+  submissionKey?: string;
   attachments?: Array<{
     filename: string;
     originalName: string;
@@ -60,10 +62,12 @@ const ProjectSchema = new Schema(
     area: { type: Number },
     floors: { type: String },
     budgetFlexibility: { type: String },
+    duration: { type: String },
     startDate: { type: Date },
     endDate: { type: Date },
     paymentTerms: { type: String },
     additionalRequirements: { type: String },
+    submissionKey: { type: String },
     attachments: [
       {
         filename: { type: String, required: true },
@@ -76,6 +80,16 @@ const ProjectSchema = new Schema(
   },
   {
     timestamps: true,
+  },
+);
+
+ProjectSchema.index(
+  { client_id: 1, submissionKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      submissionKey: { $type: "string", $ne: "" },
+    },
   },
 );
 
