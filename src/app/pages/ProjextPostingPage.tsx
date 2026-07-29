@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
   FileText,
@@ -21,9 +21,35 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Slider } from "../components/ui/slider";
+import { getAuthToken, getAuthUser } from "../utils/auth";
+
+type UploadedFile = {
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+};
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function ProjectPostingPage() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [area, setArea] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [additionalRequirements, setAdditionalRequirements] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [budget, setBudget] = useState([1000000]);
   const [projectType, setProjectType] = useState("");
   const [location, setLocation] = useState("");
@@ -31,6 +57,23 @@ export function ProjectPostingPage() {
   const [flexibility, setFlexibility] = useState("");
   const [duration, setDuration] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
+  const token = getAuthToken();
+  const authUser = getAuthUser();
+
+  const userId = authUser?._id || authUser?.id || "";
+  const canSubmit = useMemo(
+    () =>
+      Boolean(
+        title.trim() &&
+        description.trim() &&
+        projectType &&
+        location &&
+        area &&
+        agreeToTerms &&
+        userId,
+      ),
+    [agreeToTerms, area, description, location, projectType, title, userId],
+  );
 
   const steps = [
     { number: 1, title: "Project Details" },
@@ -40,12 +83,128 @@ export function ProjectPostingPage() {
   ];
 
   const nextStep = () => {
+    setError("");
+    if (
+      currentStep === 1 &&
+      (!title.trim() ||
+        !projectType ||
+        !description.trim() ||
+        !location ||
+        !area)
+    ) {
+      setError("Please complete all required fields in Project Details.");
+      return;
+    }
+
     if (currentStep < 4) setCurrentStep(currentStep + 1);
   };
 
   const prevStep = () => {
+    setError("");
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(event.target.files || []);
+    if (!selected.length) return;
+    setFiles((prev) => [...prev, ...selected]);
+    event.target.value = "";
+  }
+
+  function removeFile(fileName: string) {
+    setFiles((prev) => prev.filter((file) => file.name !== fileName));
+  }
+
+  async function uploadAttachments() {
+    if (!files.length) return [] as UploadedFile[];
+
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+    });
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!response.ok) {
+      throw new Error(data?.message || "Failed to upload attachments");
+    }
+
+    return ((data?.files || []) as UploadedFile[]).map((file) => ({
+      filename: file.filename,
+      originalName: file.originalName,
+      mimeType: file.mimeType,
+      size: file.size,
+      url: file.url,
+    }));
+  }
+
+  async function handlePostProject() {
+    setError("");
+    setSuccessMessage("");
+
+    if (!canSubmit) {
+      setError(
+        "Please fill required fields and agree to terms before posting.",
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const uploadedFiles = await uploadAttachments();
+
+      const payload = {
+        ownerId: userId,
+        client_id: userId,
+        title: title.trim(),
+        type: projectType,
+        description: description.trim(),
+        location,
+        area,
+        floors,
+        budget: budget[0],
+        budgetFlexibility: flexibility,
+        startDate,
+        endDate,
+        paymentTerms,
+        additionalRequirements: additionalRequirements.trim(),
+        attachments: uploadedFiles,
+        status: "open",
+      };
+
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!response.ok) {
+        throw new Error(data?.message || "Unable to post project");
+      }
+
+      setSuccessMessage("Project posted successfully. Engineers can now bid.");
+      setCurrentStep(4);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to post project",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -123,6 +282,18 @@ export function ProjectPostingPage() {
             transition={{ duration: 0.5 }}
             className="bg-white rounded-2xl shadow-xl p-8 relative z-10"
           >
+            {error ? (
+              <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {error}
+              </div>
+            ) : null}
+
+            {successMessage ? (
+              <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {successMessage}
+              </div>
+            ) : null}
+
             {/* Step 1: Project Details */}
             {currentStep === 1 && (
               <div className="space-y-6">
@@ -136,6 +307,8 @@ export function ProjectPostingPage() {
                     type="text"
                     placeholder="e.g., 5-Story Residential Building in Gulshan"
                     className="h-12"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
                   />
                 </div>
 
@@ -170,6 +343,8 @@ export function ProjectPostingPage() {
                   <Textarea
                     placeholder="Describe your project in detail. Include specifics about design requirements, materials, and any special considerations..."
                     className="min-h-32"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
                   />
                 </div>
 
@@ -181,11 +356,11 @@ export function ProjectPostingPage() {
                         <SelectValue placeholder="Select location" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="dhaka">Dhaka</SelectItem>
-                        <SelectItem value="chittagong">Chittagong</SelectItem>
-                        <SelectItem value="sylhet">Sylhet</SelectItem>
-                        <SelectItem value="rajshahi">Rajshahi</SelectItem>
-                        <SelectItem value="khulna">Khulna</SelectItem>
+                        <SelectItem value="Dhaka">Dhaka</SelectItem>
+                        <SelectItem value="Chattogram">Chattogram</SelectItem>
+                        <SelectItem value="Sylhet">Sylhet</SelectItem>
+                        <SelectItem value="Rajshahi">Rajshahi</SelectItem>
+                        <SelectItem value="Khulna">Khulna</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -196,6 +371,8 @@ export function ProjectPostingPage() {
                       type="number"
                       placeholder="e.g., 2500"
                       className="h-12"
+                      value={area}
+                      onChange={(event) => setArea(event.target.value)}
                     />
                   </div>
                 </div>
@@ -265,11 +442,21 @@ export function ProjectPostingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Start Date</Label>
-                    <Input type="date" className="h-12" />
+                    <Input
+                      type="date"
+                      className="h-12"
+                      value={startDate}
+                      onChange={(event) => setStartDate(event.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Expected Completion</Label>
-                    <Input type="date" className="h-12" />
+                    <Input
+                      type="date"
+                      className="h-12"
+                      value={endDate}
+                      onChange={(event) => setEndDate(event.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -319,7 +506,13 @@ export function ProjectPostingPage() {
                     Upload any relevant documents, drawings, site photos, or
                     blueprints
                   </p>
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-[#1E88E5] transition-colors cursor-pointer">
+                  <label className="block border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-[#1E88E5] transition-colors cursor-pointer">
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
                     <Upload size={48} className="mx-auto text-gray-400 mb-4" />
                     <p className="text-lg font-semibold text-[#1A1A1A] mb-2">
                       Drop files here or click to upload
@@ -327,7 +520,35 @@ export function ProjectPostingPage() {
                     <p className="text-sm text-gray-500">
                       PDF, JPG, PNG, DWG (Max 10MB each)
                     </p>
-                  </div>
+                  </label>
+
+                  {files.length ? (
+                    <div className="mt-4 space-y-2">
+                      {files.map((file) => (
+                        <div
+                          key={`${file.name}-${file.size}`}
+                          className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                        >
+                          <div>
+                            <p className="font-medium text-[#1A1A1A]">
+                              {file.name}
+                            </p>
+                            <p className="text-gray-500">
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeFile(file.name)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -349,6 +570,10 @@ export function ProjectPostingPage() {
                   <Textarea
                     placeholder="Any specific requirements, preferences, or additional information..."
                     className="min-h-24"
+                    value={additionalRequirements}
+                    onChange={(event) =>
+                      setAdditionalRequirements(event.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -366,16 +591,16 @@ export function ProjectPostingPage() {
                     <h3 className="font-bold text-[#1A1A1A] mb-2">
                       Project Summary
                     </h3>
-                    <p className="text-gray-600">
-                      5-Story Residential Building in Gulshan
-                    </p>
+                    <p className="text-gray-600">{title || "-"}</p>
                   </div>
 
                   <div className="border-t pt-4">
                     <h3 className="font-bold text-[#1A1A1A] mb-2">
                       Location & Size
                     </h3>
-                    <p className="text-gray-600">Dhaka | 2,500 sqft | G+5</p>
+                    <p className="text-gray-600">
+                      {location || "-"} | {area || "-"} sqft | {floors || "-"}
+                    </p>
                   </div>
 
                   <div className="border-t pt-4">
@@ -383,13 +608,16 @@ export function ProjectPostingPage() {
                       Budget & Timeline
                     </h3>
                     <p className="text-gray-600">
-                      BDT {budget[0].toLocaleString("en-BD")} | 12 Months
+                      BDT {budget[0].toLocaleString("en-BD")} |{" "}
+                      {duration || "-"} Months
                     </p>
                   </div>
 
                   <div className="border-t pt-4">
                     <h3 className="font-bold text-[#1A1A1A] mb-2">Documents</h3>
-                    <p className="text-gray-600">3 files attached</p>
+                    <p className="text-gray-600">
+                      {files.length} file(s) attached
+                    </p>
                   </div>
                 </div>
 
@@ -402,12 +630,24 @@ export function ProjectPostingPage() {
                 </div>
 
                 <div className="flex items-start space-x-2">
-                  <input type="checkbox" id="terms" className="mt-1" />
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    className="mt-1"
+                    checked={agreeToTerms}
+                    onChange={(event) => setAgreeToTerms(event.target.checked)}
+                  />
                   <label htmlFor="terms" className="text-sm text-gray-600">
                     I agree to the Terms of Service and Privacy Policy. I
                     understand that my project will be posted publicly.
                   </label>
                 </div>
+
+                {!userId ? (
+                  <p className="text-sm text-rose-600">
+                    You must be logged in to post a project.
+                  </p>
+                ) : null}
               </div>
             )}
 
@@ -432,8 +672,12 @@ export function ProjectPostingPage() {
                   <ArrowRight className="ml-2" size={20} />
                 </Button>
               ) : (
-                <Button className="bg-[#FF8F00] hover:bg-[#F57C00] text-white px-12 py-6 text-lg font-bold shadow-xl">
-                  POST PROJECT
+                <Button
+                  onClick={handlePostProject}
+                  disabled={isSubmitting || !canSubmit}
+                  className="bg-[#FF8F00] hover:bg-[#F57C00] text-white px-12 py-6 text-lg font-bold shadow-xl disabled:opacity-60"
+                >
+                  {isSubmitting ? "POSTING..." : "POST PROJECT"}
                 </Button>
               )}
             </div>

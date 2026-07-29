@@ -25,6 +25,13 @@ type ProjectBody = {
   endDate?: unknown;
   paymentTerms?: string;
   additionalRequirements?: string;
+  attachments?: Array<{
+    filename?: string;
+    originalName?: string;
+    mimeType?: string;
+    size?: unknown;
+    url?: string;
+  }>;
 };
 
 function parseDate(value: unknown) {
@@ -66,6 +73,32 @@ export async function createProject(req: Request, res: Response) {
     const files = Array.isArray(req.files) ? req.files : [];
     const body = (req.body || {}) as ProjectBody;
     const clientId = body.client_id || body.ownerId;
+    const uploadedAttachments = files.map((file: any) => ({
+      filename: file.filename,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      url: `/uploads/${file.filename}`,
+    }));
+
+    const providedAttachments = Array.isArray(body.attachments)
+      ? body.attachments
+          .map((attachment) => ({
+            filename: String(attachment.filename || "").trim(),
+            originalName: String(attachment.originalName || "").trim(),
+            mimeType: String(attachment.mimeType || "").trim(),
+            size: parseNumber(attachment.size),
+            url: String(attachment.url || "").trim(),
+          }))
+          .filter(
+            (attachment) =>
+              attachment.filename &&
+              attachment.originalName &&
+              attachment.mimeType &&
+              attachment.url &&
+              typeof attachment.size === "number",
+          )
+      : [];
 
     if (
       !body.title ||
@@ -100,13 +133,9 @@ export async function createProject(req: Request, res: Response) {
       additionalRequirements: body.additionalRequirements,
       client_id: clientId,
       engineer_id: body.engineer_id || null,
-      attachments: files.map((file: any) => ({
-        filename: file.filename,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-        url: `/uploads/${file.filename}`,
-      })),
+      attachments: uploadedAttachments.length
+        ? uploadedAttachments
+        : providedAttachments,
       status: body.status || "open",
     });
 

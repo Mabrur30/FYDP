@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Search, MapPin, Star, MessageSquare, Filter } from "lucide-react";
 import { Header } from "../components/Header";
@@ -14,91 +14,145 @@ import {
 } from "../components/ui/select";
 import { Link } from "react-router-dom";
 
-const engineers = [
-  {
-    id: 1,
-    name: "Ahmed Khan",
-    title: "Structural Engineer",
-    rating: 4.8,
-    reviews: 127,
-    experience: 12,
-    location: "Dhaka",
-    specialties: ["RCC Design", "Foundation", "High-Rise"],
-    image:
-      "https://images.unsplash.com/photo-1633788989414-8a8d43ff985e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXZpbCUyMGVuZ2luZWVyJTIwcHJvZmVzc2lvbmFsJTIwQmFuZ2xhZGVzaHxlbnwxfHx8fDE3NzM5NDc2OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    hourlyRate: "2,500-3,500",
-  },
-  {
-    id: 2,
-    name: "Fatima Rahman",
-    title: "Geotechnical Engineer",
-    rating: 4.9,
-    reviews: 94,
-    experience: 10,
-    location: "Chittagong",
-    specialties: ["Soil Testing", "Foundation Design", "Site Investigation"],
-    image:
-      "https://images.unsplash.com/photo-1633788989414-8a8d43ff985e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXZpbCUyMGVuZ2luZWVyJTIwcHJvZmVzc2lvbmFsJTIwQmFuZ2xhZGVzaHxlbnwxfHx8fDE3NzM5NDc2OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    hourlyRate: "2,000-2,800",
-  },
-  {
-    id: 3,
-    name: "Rashed Hasan",
-    title: "Project Manager",
-    rating: 4.7,
-    reviews: 156,
-    experience: 15,
-    location: "Dhaka",
-    specialties: ["Project Planning", "Cost Estimation", "Quality Control"],
-    image:
-      "https://images.unsplash.com/photo-1633788989414-8a8d43ff985e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXZpbCUyMGVuZ2luZWVyJTIwcHJvZmVzc2lvbmFsJTIwQmFuZ2xhZGVzaHxlbnwxfHx8fDE3NzM5NDc2OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    hourlyRate: "3,000-4,000",
-  },
-  {
-    id: 4,
-    name: "Nusrat Jahan",
-    title: "Architectural Engineer",
-    rating: 4.8,
-    reviews: 88,
-    experience: 8,
-    location: "Sylhet",
-    specialties: ["Building Design", "Interior Planning", "3D Modeling"],
-    image:
-      "https://images.unsplash.com/photo-1633788989414-8a8d43ff985e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXZpbCUyMGVuZ2luZWVyJTIwcHJvZmVzc2lvbmFsJTIwQmFuZ2xhZGVzaHxlbnwxfHx8fDE3NzM5NDc2OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    hourlyRate: "2,200-3,000",
-  },
-  {
-    id: 5,
-    name: "Kamal Uddin",
-    title: "Structural Consultant",
-    rating: 4.9,
-    reviews: 203,
-    experience: 18,
-    location: "Dhaka",
-    specialties: ["Earthquake Analysis", "Steel Structures", "Bridge Design"],
-    image:
-      "https://images.unsplash.com/photo-1633788989414-8a8d43ff985e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXZpbCUyMGVuZ2luZWVyJTIwcHJvZmVzc2lvbmFsJTIwQmFuZ2xhZGVzaHxlbnwxfHx8fDE3NzM5NDc2OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    hourlyRate: "3,500-5,000",
-  },
-  {
-    id: 6,
-    name: "Sabrina Akter",
-    title: "Construction Manager",
-    rating: 4.6,
-    reviews: 72,
-    experience: 9,
-    location: "Khulna",
-    specialties: ["Site Management", "Safety Planning", "Resource Allocation"],
-    image:
-      "https://images.unsplash.com/photo-1633788989414-8a8d43ff985e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXZpbCUyMGVuZ2luZWVyJTIwcHJvZmVzc2lvbmFsJTIwQmFuZ2xhZGVzaHxlbnwxfHx8fDE3NzM5NDc2OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    hourlyRate: "2,000-2,500",
-  },
-];
+type DirectoryEngineer = {
+  id: string;
+  name: string;
+  title: string;
+  rating: number;
+  reviews: number;
+  experience: number;
+  location: string;
+  specialties: string[];
+  image: string;
+  hourlyRate: string;
+};
+
+function parseRate(value: string) {
+  const numeric = Number(String(value || "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(numeric) ? numeric : 0;
+}
 
 export function EngineerDirectoryPage() {
   const [location, setLocation] = useState("");
   const [specialization, setSpecialization] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("rating");
+  const [engineers, setEngineers] = useState<DirectoryEngineer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadEngineers() {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch("/api/engineers");
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : [];
+        if (!response.ok) {
+          throw new Error(data?.message || "Unable to load engineers");
+        }
+
+        const items = (Array.isArray(data) ? data : []).map(
+          (engineer: any): DirectoryEngineer => ({
+            id: String(engineer.id || engineer._id || ""),
+            name: engineer.name || "Engineer",
+            title:
+              engineer.title ||
+              (engineer.specialization
+                ? `${engineer.specialization} Engineer`
+                : "Civil Engineer"),
+            rating: Number(engineer.rating || 0),
+            reviews: Number(engineer.reviews || 0),
+            experience: Number(engineer.experience_years || 0),
+            location: engineer.location || "",
+            specialties: Array.isArray(engineer.specialties)
+              ? engineer.specialties
+              : engineer.specialization
+                ? [engineer.specialization]
+                : [],
+            image:
+              engineer.imageUrl ||
+              "https://images.unsplash.com/photo-1633788989414-8a8d43ff985e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXZpbCUyMGVuZ2luZWVyJTIwcHJvZmVzc2lvbmFsJTIwQmFuZ2xhZGVzaHxlbnwxfHx8fDE3NzM5NDc2OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+            hourlyRate: String(engineer.hourlyRate || "N/A"),
+          }),
+        );
+
+        if (isMounted) {
+          setEngineers(items);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load engineers",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadEngineers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredEngineers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return engineers.filter((engineer) => {
+      const matchesQuery =
+        !query ||
+        engineer.name.toLowerCase().includes(query) ||
+        engineer.title.toLowerCase().includes(query) ||
+        engineer.location.toLowerCase().includes(query) ||
+        engineer.specialties.some((item) => item.toLowerCase().includes(query));
+
+      const matchesLocation =
+        !location ||
+        location === "all" ||
+        engineer.location.toLowerCase() === location.toLowerCase();
+
+      const matchesSpecialization =
+        !specialization ||
+        specialization === "all" ||
+        engineer.title.toLowerCase().includes(specialization.toLowerCase()) ||
+        engineer.specialties.some((item) =>
+          item.toLowerCase().includes(specialization.toLowerCase()),
+        );
+
+      return matchesQuery && matchesLocation && matchesSpecialization;
+    });
+  }, [engineers, location, searchQuery, specialization]);
+
+  const sortedEngineers = useMemo(() => {
+    const items = [...filteredEngineers];
+
+    if (sortBy === "experience") {
+      items.sort((a, b) => b.experience - a.experience);
+    } else if (sortBy === "price-low") {
+      items.sort((a, b) => parseRate(a.hourlyRate) - parseRate(b.hourlyRate));
+    } else if (sortBy === "price-high") {
+      items.sort((a, b) => parseRate(b.hourlyRate) - parseRate(a.hourlyRate));
+    } else {
+      items.sort((a, b) => b.rating - a.rating);
+    }
+
+    return items;
+  }, [filteredEngineers, sortBy]);
+
+  function handleSearch() {
+    setSearchQuery(searchInput.trim());
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -133,11 +187,21 @@ export function EngineerDirectoryPage() {
               <Input
                 type="text"
                 placeholder="Search by name, specialization, or location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    handleSearch();
+                  }
+                }}
                 className="flex-1 border-0 focus-visible:ring-0 text-lg"
               />
-              <Button className="bg-[#FF8F00] hover:bg-[#F57C00] text-white px-8">
+              <Button
+                type="button"
+                onClick={handleSearch}
+                className="bg-[#FF8F00] hover:bg-[#F57C00] text-white px-8"
+              >
                 Search
               </Button>
             </div>
@@ -173,11 +237,11 @@ export function EngineerDirectoryPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Locations</SelectItem>
-                        <SelectItem value="dhaka">Dhaka</SelectItem>
-                        <SelectItem value="chittagong">Chittagong</SelectItem>
-                        <SelectItem value="sylhet">Sylhet</SelectItem>
-                        <SelectItem value="rajshahi">Rajshahi</SelectItem>
-                        <SelectItem value="khulna">Khulna</SelectItem>
+                        <SelectItem value="Dhaka">Dhaka</SelectItem>
+                        <SelectItem value="Chattogram">Chattogram</SelectItem>
+                        <SelectItem value="Sylhet">Sylhet</SelectItem>
+                        <SelectItem value="Rajshahi">Rajshahi</SelectItem>
+                        <SelectItem value="Khulna">Khulna</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -252,9 +316,9 @@ export function EngineerDirectoryPage() {
             <div className="flex-1">
               <div className="mb-6 flex items-center justify-between">
                 <p className="text-[#1A1A1A]">
-                  Showing {engineers.length} engineers
+                  Showing {sortedEngineers.length} engineers
                 </p>
-                <Select defaultValue="rating">
+                <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
@@ -267,8 +331,18 @@ export function EngineerDirectoryPage() {
                 </Select>
               </div>
 
+              {loading ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">
+                  Loading engineers...
+                </div>
+              ) : error ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-8 text-center text-rose-700">
+                  {error}
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {engineers.map((engineer, index) => (
+                {sortedEngineers.map((engineer, index) => (
                   <motion.div
                     key={engineer.id}
                     initial={{ opacity: 0, y: 30 }}
@@ -358,6 +432,12 @@ export function EngineerDirectoryPage() {
                   </motion.div>
                 ))}
               </div>
+
+              {!loading && !error && sortedEngineers.length === 0 ? (
+                <div className="mt-6 rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">
+                  No engineers found for the selected filters.
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

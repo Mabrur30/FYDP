@@ -183,6 +183,29 @@ function getProgressWidthClass(progress: number) {
   }
 }
 
+function normalizeStatus(value: string | undefined) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+function parseBangladeshAmount(value: string | number | undefined) {
+  if (typeof value === "number") return value;
+  const parsed = Number(String(value || "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatBangladeshAmount(value: number) {
+  return new Intl.NumberFormat("en-BD").format(value);
+}
+
+function toSpecialtiesList(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 type EngineerDashboardSection =
   | "overview"
   | "projects"
@@ -288,7 +311,9 @@ export function EngineerDashboardPage() {
       throw new Error("No engineer profile id was found.");
     }
 
-    const response = await fetch(`/api/engineers/${engineerId}/profile`);
+    const response = await fetch(`/api/engineers/${engineerId}/profile`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     const text = await response.text();
     const data = text ? JSON.parse(text) : null;
 
@@ -440,13 +465,27 @@ export function EngineerDashboardPage() {
     setIsSavingProfile(true);
     setSaveError("");
     try {
+      const payload = {
+        name: profileForm.name,
+        email: profileForm.email,
+        phone: profileForm.phone,
+        specialization: profileForm.specialization,
+        title: profileForm.title,
+        bio: profileForm.bio,
+        specialties: toSpecialtiesList(profileForm.specialties),
+        imageUrl: profileForm.imageUrl,
+        hourlyRate: profileForm.hourlyRate,
+        location: profileForm.location,
+        experience_years: profileForm.experience_years,
+      };
+
       const res = await fetch(`/api/engineers/${engineerId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ engineer: profileForm }),
+        body: JSON.stringify(payload),
       });
 
       const text = await res.text();
@@ -471,6 +510,31 @@ export function EngineerDashboardPage() {
         String(conversation.id) === selectedConversationId ||
         String(conversation.userId) === selectedConversationId,
     ) || conversations[0];
+
+  const totalProjectsCount = projects.length;
+  const completedProjectsCount = projects.filter(
+    (project) => normalizeStatus(project.status) === "completed",
+  ).length;
+  const activeProjectsCount = projects.filter(
+    (project) => normalizeStatus(project.status) !== "completed",
+  ).length;
+  const pendingBidsCount = bids.filter((bid) => {
+    const status = normalizeStatus(bid.status);
+    return (
+      status === "pending" ||
+      status === "under_review" ||
+      status === "shortlisted"
+    );
+  }).length;
+  const totalEarningsAmount = earnings.reduce(
+    (sum, earning) => sum + parseBangladeshAmount(earning.amount),
+    0,
+  );
+  const completionRate =
+    profile?.stats.successRate ??
+    (totalProjectsCount
+      ? Math.round((completedProjectsCount / totalProjectsCount) * 100)
+      : 0);
 
   // earnings loaded from backend into `earnings` state
 
@@ -505,9 +569,11 @@ export function EngineerDashboardPage() {
                       <h3 className="text-gray-600">Active Projects</h3>
                       <FileText size={24} className="text-[#1E88E5]" />
                     </div>
-                    <p className="text-4xl font-bold text-[#1A1A1A]">3</p>
-                    <p className="text-sm text-green-600 mt-2">
-                      ↑ 2 from last month
+                    <p className="text-4xl font-bold text-[#1A1A1A]">
+                      {projectsLoading ? "-" : activeProjectsCount}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      {completedProjectsCount} completed of {totalProjectsCount}
                     </p>
                   </div>
 
@@ -516,9 +582,11 @@ export function EngineerDashboardPage() {
                       <h3 className="text-gray-600">Pending Bids</h3>
                       <Gavel size={24} className="text-[#FF8F00]" />
                     </div>
-                    <p className="text-4xl font-bold text-[#1A1A1A]">3</p>
-                    <p className="text-sm text-blue-600 mt-2">
-                      New opportunities
+                    <p className="text-4xl font-bold text-[#1A1A1A]">
+                      {bidsLoading ? "-" : pendingBidsCount}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      {bids.length} total bids tracked
                     </p>
                   </div>
 
@@ -527,7 +595,11 @@ export function EngineerDashboardPage() {
                       <h3 className="text-gray-600">Total Earnings</h3>
                       <DollarSign size={24} className="text-green-500" />
                     </div>
-                    <p className="text-4xl font-bold text-[#1A1A1A]">65.5L</p>
+                    <p className="text-4xl font-bold text-[#1A1A1A]">
+                      {earningsLoading
+                        ? "BDT -"
+                        : `BDT ${formatBangladeshAmount(totalEarningsAmount)}`}
+                    </p>
                     <p className="text-sm text-gray-600 mt-2">Total</p>
                   </div>
 
@@ -536,8 +608,12 @@ export function EngineerDashboardPage() {
                       <h3 className="text-gray-600">Completion Rate</h3>
                       <TrendingUp size={24} className="text-purple-500" />
                     </div>
-                    <p className="text-4xl font-bold text-[#1A1A1A]">96%</p>
-                    <p className="text-sm text-green-600 mt-2">Excellent</p>
+                    <p className="text-4xl font-bold text-[#1A1A1A]">
+                      {projectsLoading ? "-%" : `${completionRate}%`}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Based on project statuses
+                    </p>
                   </div>
                 </motion.div>
 

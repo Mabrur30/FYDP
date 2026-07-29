@@ -8,6 +8,7 @@ import projectRoutes from "./routes/projects";
 import reviewRoutes from "./routes/reviews";
 import uploadRoutes from "./routes/uploads";
 import conversationRoutes from "./routes/conversations";
+import networkRoutes from "./routes/network";
 import path from "path";
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/conversations", conversationRoutes);
+app.use("/api/network", networkRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 

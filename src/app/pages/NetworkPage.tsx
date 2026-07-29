@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+import { getAuthToken, getAuthUser } from "../utils/auth";
 import {
   ThumbsUp,
   MessageCircle,
@@ -12,37 +14,36 @@ import {
   Briefcase,
 } from "lucide-react";
 
-interface Connection {
-  id: number;
+interface NetworkEngineer {
+  id: string;
   name: string;
   title: string;
-  company: string;
   location: string;
   image: string;
-  mutualConnections: number;
   specialization: string;
+  rating: number;
 }
 
-interface ConnectionRequest {
-  id: number;
-  name: string;
+interface NetworkProject {
+  id: string;
   title: string;
-  company: string;
-  image: string;
-  mutualConnections: number;
+  location: string;
+  status: string;
+  updatedAt?: string;
+  description?: string;
 }
 
-interface Activity {
-  id: number;
+interface ActivityItem {
+  id: string;
   user: string;
   userImage: string;
   action: string;
   timestamp: string;
-  content?: string;
+  content: string;
 }
 
-interface Post {
-  id: number;
+interface FeedPost {
+  id: string;
   author: string;
   authorTitle: string;
   authorImage: string;
@@ -56,282 +57,388 @@ interface Post {
   type: "text" | "project" | "article" | "job";
 }
 
+interface NetworkRequestsResponse {
+  incoming: NetworkEngineer[];
+  outgoing: NetworkEngineer[];
+}
+
+function formatRelativeDate(value?: string) {
+  if (!value) return "Recently";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+  return "This month";
+}
+
+function normalizeStatus(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized === "completed") return "completed a project";
+  if (normalized === "in_progress") return "is working on a project";
+  return "posted a new project";
+}
+
+function fallbackImage(seed: string) {
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/200/200`;
+}
+
+async function readJsonResponse<T>(response: Response): Promise<T> {
+  const raw = await response.text();
+  const data = raw ? JSON.parse(raw) : null;
+
+  if (!response.ok) {
+    const message = data?.message || "Request failed";
+    throw new Error(String(message));
+  }
+
+  return data as T;
+}
+
+function toNetworkEngineer(raw: any): NetworkEngineer {
+  return {
+    id: String(raw?.id || raw?._id || ""),
+    name: raw?.name || "Engineer",
+    title:
+      raw?.title ||
+      (raw?.specialization
+        ? `${raw.specialization} Engineer`
+        : "Civil Engineer"),
+    location: raw?.location || "Bangladesh",
+    image:
+      raw?.image ||
+      raw?.imageUrl ||
+      fallbackImage(String(raw?.id || raw?._id || "engineer")),
+    specialization: raw?.specialization || "General Civil",
+    rating: Number(raw?.rating || 0),
+  };
+}
+
 export function NetworkPage() {
+  const navigate = useNavigate();
+  const token = getAuthToken();
+  const currentUser = getAuthUser();
+  const currentUserId = String(currentUser?.id || currentUser?._id || "");
   const [activeTab, setActiveTab] = useState<
     "feed" | "connections" | "requests" | "suggestions"
   >("feed");
   const [searchQuery, setSearchQuery] = useState("");
   const [postText, setPostText] = useState("");
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: 1,
-      author: "Mahmud Hasan",
-      authorTitle: "Senior Structural Engineer at StructurePro BD",
-      authorImage:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop",
-      timestamp: "2 hours ago",
-      content:
-        "Excited to announce the successful completion of Bashundhara R-A Tower, a 15-story residential complex! This project featured advanced seismic design and sustainable construction practices. Proud of the team effort! 🏗️",
-      image:
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=500&fit=crop",
-      likes: 127,
-      comments: 24,
-      shares: 15,
-      liked: false,
-      type: "project",
-    },
-    {
-      id: 2,
-      author: "Sabrina Akter",
-      authorTitle: "Environmental Engineer at Green Construction Ltd",
-      authorImage:
-        "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop",
-      timestamp: "5 hours ago",
-      content:
-        "New LEED certification guidelines for sustainable construction in Bangladesh just released! Key changes include stricter water efficiency standards and enhanced indoor air quality requirements. Every construction professional should review these updates.",
-      likes: 89,
-      comments: 18,
-      shares: 42,
-      liked: true,
-      type: "article",
-    },
-    {
-      id: 3,
-      author: "Ashraf Ali",
-      authorTitle: "Construction Manager at Mega Projects BD",
-      authorImage:
-        "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&h=200&fit=crop",
-      timestamp: "1 day ago",
-      content:
-        "We're hiring! Looking for 3 experienced Site Engineers for our upcoming commercial project in Gulshan. Requirements: 5+ years experience, BUET graduate preferred. Send your CV to careers@megaprojectsbd.com",
-      likes: 56,
-      comments: 12,
-      shares: 28,
-      liked: false,
-      type: "job",
-    },
-    {
-      id: 4,
-      author: "Razia Sultana",
-      authorTitle: "Bridge Design Engineer at Infrastructure Innovators",
-      authorImage:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop",
-      timestamp: "2 days ago",
-      content:
-        "Attended an excellent workshop on modern bridge construction techniques. The future of infrastructure in Bangladesh looks promising with these innovative approaches to design and sustainability.",
-      image:
-        "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=800&h=500&fit=crop",
-      likes: 203,
-      comments: 35,
-      shares: 19,
-      liked: true,
-      type: "text",
-    },
-    {
-      id: 5,
-      author: "Tanvir Ahmed",
-      authorTitle: "Geotechnical Engineer at Foundation Experts BD",
-      authorImage:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop",
-      timestamp: "3 days ago",
-      content:
-        "Completed soil testing for a major infrastructure project in Chittagong. The geological survey revealed fascinating insights about the region's soil composition. Data-driven foundation design is the future!",
-      likes: 94,
-      comments: 15,
-      shares: 8,
-      liked: false,
-      type: "project",
-    },
+  const [engineers, setEngineers] = useState<NetworkEngineer[]>([]);
+  const [projects, setProjects] = useState<NetworkProject[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [connections, setConnections] = useState<NetworkEngineer[]>([]);
+  const [connectionRequests, setConnectionRequests] = useState<
+    NetworkEngineer[]
+  >([]);
+  const [outgoingRequestIds, setOutgoingRequestIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      setLoading(true);
+      setError("");
+
+      if (!token) {
+        setError("Please sign in to access your network.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [
+          engineersData,
+          projectsData,
+          connectionsData,
+          requestsData,
+          postsData,
+        ] = await Promise.all([
+          fetch("/api/engineers").then((res) => readJsonResponse<any[]>(res)),
+          fetch("/api/projects").then((res) => readJsonResponse<any[]>(res)),
+          fetch("/api/network/connections", { headers }).then((res) =>
+            readJsonResponse<any[]>(res),
+          ),
+          fetch("/api/network/requests", { headers }).then((res) =>
+            readJsonResponse<NetworkRequestsResponse>(res),
+          ),
+          fetch("/api/network/posts", { headers }).then((res) =>
+            readJsonResponse<any[]>(res),
+          ),
+        ]);
+
+        const mappedEngineers = (
+          Array.isArray(engineersData) ? engineersData : []
+        ).map((engineer: any): NetworkEngineer => toNetworkEngineer(engineer));
+
+        const mappedProjects = (
+          Array.isArray(projectsData) ? projectsData : []
+        ).map(
+          (project: any): NetworkProject => ({
+            id: String(project.id || project._id || ""),
+            title: project.title || "Project",
+            location: project.location || "Bangladesh",
+            status: String(project.status || "open"),
+            updatedAt: project.updatedAt || project.createdAt,
+            description: project.description || "",
+          }),
+        );
+
+        const activityFeed: ActivityItem[] = mappedProjects
+          .slice(0, 5)
+          .map((project, index) => {
+            const engineer =
+              mappedEngineers[index % Math.max(1, mappedEngineers.length)];
+            return {
+              id: `activity-${project.id}`,
+              user: engineer?.name || "Network Member",
+              userImage: engineer?.image || fallbackImage(project.id),
+              action: normalizeStatus(project.status),
+              timestamp: formatRelativeDate(project.updatedAt),
+              content: `${project.title} in ${project.location}`,
+            };
+          });
+
+        const persistedConnections = (
+          Array.isArray(connectionsData) ? connectionsData : []
+        ).map((value: any) => toNetworkEngineer(value));
+
+        const incomingRequests = (
+          Array.isArray(requestsData?.incoming) ? requestsData.incoming : []
+        ).map((value: any) => toNetworkEngineer(value));
+
+        const outgoingRequests = (
+          Array.isArray(requestsData?.outgoing) ? requestsData.outgoing : []
+        ).map((value: any) => toNetworkEngineer(value));
+
+        const feedPosts = (Array.isArray(postsData) ? postsData : []).map(
+          (post: any): FeedPost => ({
+            id: String(post.id || post._id || `post-${Math.random()}`),
+            author: post.author || "Member",
+            authorTitle: post.authorTitle || "CivilHub Member",
+            authorImage:
+              post.authorImage ||
+              fallbackImage(String(post.id || post._id || "post")),
+            timestamp: post.timestamp || "Recently",
+            content: post.content || "",
+            image: post.image,
+            likes: Number(post.likes || 0),
+            comments: Number(post.comments || 0),
+            shares: Number(post.shares || 0),
+            liked: Boolean(post.liked),
+            type: (post.type || "text") as FeedPost["type"],
+          }),
+        );
+
+        if (isMounted) {
+          setEngineers(mappedEngineers);
+          setProjects(mappedProjects);
+          setActivities(activityFeed);
+          setPosts(feedPosts);
+          setConnections(persistedConnections);
+          setConnectionRequests(incomingRequests);
+          setOutgoingRequestIds(outgoingRequests.map((request) => request.id));
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load network data",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  const suggestions = useMemo(() => {
+    const excluded = new Set([
+      ...connections.map((item) => item.id),
+      ...connectionRequests.map((item) => item.id),
+      ...outgoingRequestIds,
+      currentUserId,
+    ]);
+    return engineers.filter((engineer) => !excluded.has(engineer.id));
+  }, [
+    connections,
+    connectionRequests,
+    currentUserId,
+    engineers,
+    outgoingRequestIds,
   ]);
 
-  const connectionRequests: ConnectionRequest[] = [
-    {
-      id: 1,
-      name: "Kamal Hassan",
-      title: "Structural Engineer",
-      company: "BuildTech Solutions",
-      image:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
-      mutualConnections: 12,
-    },
-    {
-      id: 2,
-      name: "Farida Rahman",
-      title: "Civil Project Manager",
-      company: "Metro Infrastructure Ltd",
-      image:
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
-      mutualConnections: 8,
-    },
-  ];
+  async function handleAcceptRequest(id: string) {
+    if (!token) return;
 
-  const suggestions: Connection[] = [
-    {
-      id: 1,
-      name: "Tanvir Ahmed",
-      title: "Geotechnical Engineer",
-      company: "Foundation Experts BD",
-      location: "Dhaka, Bangladesh",
-      image:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop",
-      mutualConnections: 15,
-      specialization: "Soil Mechanics",
-    },
-    {
-      id: 2,
-      name: "Nadia Islam",
-      title: "Highway Design Engineer",
-      company: "Roads & Highways Department",
-      location: "Chittagong, Bangladesh",
-      image:
-        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop",
-      mutualConnections: 9,
-      specialization: "Transportation Engineering",
-    },
-    {
-      id: 3,
-      name: "Rahim Khan",
-      title: "Water Resources Engineer",
-      company: "Delta Engineering",
-      location: "Sylhet, Bangladesh",
-      image:
-        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&h=200&fit=crop",
-      mutualConnections: 6,
-      specialization: "Hydraulics",
-    },
-  ];
+    try {
+      const response = await fetch(`/api/network/requests/${id}/accept`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-  const connections: Connection[] = [
-    {
-      id: 1,
-      name: "Mahmud Hasan",
-      title: "Senior Structural Engineer",
-      company: "StructurePro BD",
-      location: "Dhaka, Bangladesh",
-      image:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop",
-      mutualConnections: 23,
-      specialization: "High-Rise Buildings",
-    },
-    {
-      id: 2,
-      name: "Sabrina Akter",
-      title: "Environmental Engineer",
-      company: "Green Construction Ltd",
-      location: "Dhaka, Bangladesh",
-      image:
-        "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop",
-      mutualConnections: 18,
-      specialization: "Sustainable Design",
-    },
-    {
-      id: 3,
-      name: "Ashraf Ali",
-      title: "Construction Manager",
-      company: "Mega Projects BD",
-      location: "Dhaka, Bangladesh",
-      image:
-        "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&h=200&fit=crop",
-      mutualConnections: 31,
-      specialization: "Commercial Projects",
-    },
-    {
-      id: 4,
-      name: "Razia Sultana",
-      title: "Bridge Design Engineer",
-      company: "Infrastructure Innovators",
-      location: "Chittagong, Bangladesh",
-      image:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop",
-      mutualConnections: 14,
-      specialization: "Bridge Engineering",
-    },
-  ];
+      const data = await readJsonResponse<{ connection: NetworkEngineer }>(
+        response,
+      );
 
-  const activities: Activity[] = [
-    {
-      id: 1,
-      user: "Mahmud Hasan",
-      userImage:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop",
-      action: "completed a project",
-      timestamp: "2 hours ago",
-      content:
-        "Successfully completed the structural design for Bashundhara R-A Tower 15-story residential complex.",
-    },
-    {
-      id: 2,
-      user: "Sabrina Akter",
-      userImage:
-        "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop",
-      action: "shared an article",
-      timestamp: "5 hours ago",
-      content:
-        "New LEED certification guidelines for sustainable construction in Bangladesh.",
-    },
-    {
-      id: 3,
-      user: "Ashraf Ali",
-      userImage:
-        "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&h=200&fit=crop",
-      action: "posted a job opening",
-      timestamp: "1 day ago",
-      content:
-        "Looking for experienced Site Engineers for ongoing commercial project in Gulshan.",
-    },
-  ];
+      const mapped = toNetworkEngineer(data.connection);
+      setConnections((prev) => [mapped, ...prev]);
+      setConnectionRequests((prev) =>
+        prev.filter((request) => request.id !== id),
+      );
+      setError("");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to accept request",
+      );
+    }
+  }
 
-  const handleAcceptRequest = (id: number) => {
-    console.log("Accepted connection request:", id);
-  };
+  async function handleRejectRequest(id: string) {
+    if (!token) return;
 
-  const handleRejectRequest = (id: number) => {
-    console.log("Rejected connection request:", id);
-  };
+    try {
+      const response = await fetch(`/api/network/requests/${id}/reject`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-  const handleConnect = (id: number) => {
-    console.log("Sent connection request to:", id);
-  };
+      if (!response.ok) {
+        await readJsonResponse(response);
+      }
 
-  const handleMessage = (id: number) => {
-    console.log("Message connection:", id);
-  };
+      setConnectionRequests((prev) =>
+        prev.filter((request) => request.id !== id),
+      );
+      setError("");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to reject request",
+      );
+    }
+  }
 
-  const handleLike = (postId: number) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              liked: !post.liked,
-              likes: post.liked ? post.likes - 1 : post.likes + 1,
-            }
-          : post,
-      ),
-    );
-  };
+  async function handleConnect(id: string) {
+    if (!token) return;
 
-  const handleCreatePost = () => {
+    try {
+      const response = await fetch("/api/network/requests", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recipientId: id }),
+      });
+
+      await readJsonResponse(response);
+      setOutgoingRequestIds((prev) =>
+        prev.includes(id) ? prev : [id, ...prev],
+      );
+      setError("");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to send request",
+      );
+    }
+  }
+
+  function handleMessage(_connectionId?: string) {
+    navigate("/messages");
+  }
+
+  async function handleLike(postId: string) {
+    if (postId.startsWith("project-")) {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                liked: !post.liked,
+                likes: post.liked ? post.likes - 1 : post.likes + 1,
+              }
+            : post,
+        ),
+      );
+      return;
+    }
+
+    if (!token) return;
+
+    try {
+      const response = await fetch(`/api/network/posts/${postId}/like`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const updatedPost = await readJsonResponse<FeedPost>(response);
+
+      setPosts((prev) =>
+        prev.map((post) => (post.id === postId ? updatedPost : post)),
+      );
+      setError("");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to like post",
+      );
+    }
+  }
+
+  async function handleCreatePost() {
     if (!postText.trim()) return;
+    if (!token) return;
 
-    const newPost: Post = {
-      id: posts.length + 1,
-      author: "You",
-      authorTitle: "Civil Engineer",
-      authorImage:
-        "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&h=200&fit=crop",
-      timestamp: "Just now",
-      content: postText,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      liked: false,
-      type: "text",
-    };
+    try {
+      const response = await fetch("/api/network/posts", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: postText.trim() }),
+      });
 
-    setPosts([newPost, ...posts]);
-    setPostText("");
-  };
+      const createdPost = await readJsonResponse<FeedPost>(response);
+      setPosts((prev) => [createdPost, ...prev]);
+      setPostText("");
+      setError("");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to create post",
+      );
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -362,6 +469,12 @@ export function NetworkPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {error ? (
+            <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Sidebar - Stats */}
             <div className="lg:col-span-1">
@@ -371,18 +484,20 @@ export function NetworkPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Connections</span>
                     <span className="font-bold text-[#1E88E5]">
-                      {connections.length}
+                      {loading ? "-" : connections.length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Pending Requests</span>
                     <span className="font-bold text-[#FF8F00]">
-                      {connectionRequests.length}
+                      {loading ? "-" : connectionRequests.length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Profile Views</span>
-                    <span className="font-bold text-[#1E88E5]">142</span>
+                    <span className="font-bold text-[#1E88E5]">
+                      {loading ? "-" : projects.length * 12}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -481,6 +596,12 @@ export function NetworkPage() {
                 </div>
 
                 <div className="p-6">
+                  {loading && activeTab === "feed" ? (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                      Loading network feed...
+                    </div>
+                  ) : null}
+
                   {/* Feed Tab */}
                   {activeTab === "feed" && (
                     <div className="space-y-6">
@@ -681,10 +802,10 @@ export function NetworkPage() {
                                 </h4>
                                 <p className="text-gray-600">{request.title}</p>
                                 <p className="text-sm text-gray-500">
-                                  {request.company}
+                                  {request.location}
                                 </p>
                                 <p className="text-xs text-gray-500 mt-1">
-                                  {request.mutualConnections} mutual connections
+                                  {request.specialization}
                                 </p>
                               </div>
                               <div className="flex gap-2">
@@ -729,7 +850,7 @@ export function NetworkPage() {
                             conn.name
                               .toLowerCase()
                               .includes(searchQuery.toLowerCase()) ||
-                            conn.company
+                            conn.title
                               .toLowerCase()
                               .includes(searchQuery.toLowerCase()) ||
                             conn.specialization
@@ -755,25 +876,25 @@ export function NetworkPage() {
                                   {connection.title}
                                 </p>
                                 <p className="text-sm text-gray-500">
-                                  {connection.company}
+                                  {connection.title}
                                 </p>
                                 <p className="text-xs text-gray-500 mt-1">
                                   {connection.location} •{" "}
                                   {connection.specialization}
                                 </p>
-                                <p className="text-xs text-gray-500">
-                                  {connection.mutualConnections} mutual
-                                  connections
-                                </p>
                               </div>
                               <div className="flex gap-2">
                                 <button
+                                  type="button"
                                   onClick={() => handleMessage(connection.id)}
                                   className="px-4 py-2 bg-[#1E88E5] text-white rounded-lg hover:bg-[#1565C0] transition-colors"
                                 >
                                   Message
                                 </button>
-                                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                <button
+                                  type="button"
+                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
                                   View Profile
                                 </button>
                               </div>
@@ -805,25 +926,25 @@ export function NetworkPage() {
                                 {suggestion.title}
                               </p>
                               <p className="text-sm text-gray-500">
-                                {suggestion.company}
+                                {suggestion.title}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
                                 {suggestion.location} •{" "}
                                 {suggestion.specialization}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {suggestion.mutualConnections} mutual
-                                connections
-                              </p>
                             </div>
                             <div className="flex gap-2">
                               <button
+                                type="button"
                                 onClick={() => handleConnect(suggestion.id)}
                                 className="px-4 py-2 bg-[#FF8F00] text-white rounded-lg hover:bg-[#F57C00] transition-colors"
                               >
                                 Connect
                               </button>
-                              <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                              <button
+                                type="button"
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                              >
                                 View Profile
                               </button>
                             </div>

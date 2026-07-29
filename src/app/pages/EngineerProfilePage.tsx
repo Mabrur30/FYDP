@@ -16,6 +16,7 @@ import {
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 import { Button } from "../components/ui/button";
+import { getAuthToken } from "../utils/auth";
 import {
   Tabs,
   TabsContent,
@@ -133,6 +134,7 @@ export function EngineerProfilePage() {
   const [error, setError] = useState("");
 
   const profileId = id || getStoredEngineerId();
+  const token = getAuthToken();
 
   useEffect(() => {
     let isMounted = true;
@@ -150,7 +152,9 @@ export function EngineerProfilePage() {
       setError("");
 
       try {
-        const response = await fetch(`/api/engineers/${profileId}/profile`);
+        const response = await fetch(`/api/engineers/${profileId}/profile`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         const responseText = await response.text();
         const data = responseText ? JSON.parse(responseText) : null;
 
@@ -181,7 +185,7 @@ export function EngineerProfilePage() {
     return () => {
       isMounted = false;
     };
-  }, [profileId]);
+  }, [profileId, token]);
 
   if (loading) {
     return (
